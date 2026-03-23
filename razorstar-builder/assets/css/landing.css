@@ -1,0 +1,20 @@
+/* Landing page specific styles that can't be done with Tailwind */
+
+body.landing-page {
+    background-image: url('/images/key-visual.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+}
+
+.landing-card {
+    background-color: rgba(239, 239, 239, 0.75);
+    backdrop-filter: blur(3px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .landing-card {
+    background-color: rgba(31, 41, 55, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}

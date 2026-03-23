@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "./basecoat.css";
+@import "./theme.css";
+
+/* Custom Sidebar Enhancements for Basecoat */
+.sidebar .sidebar-content ul > li > a,
+.sidebar .sidebar-content ul > li > details > summary {
+    @apply flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden transition-colors;
+    @apply hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+    @apply [&[aria-current=page]]:bg-sidebar-accent [&[aria-current=page]]:font-medium [&[aria-current=page]]:text-sidebar-accent-foreground;
+    @apply [&>svg]:size-4 [&>svg]:shrink-0;
+}
+
+.sidebar .sidebar-content ul ul > li > a {
+    @apply text-sidebar-foreground/70 hover:text-sidebar-accent-foreground;
+}
+
+/* Ensure proper icon sizing */
+.sidebar svg {
+    flex-shrink: 0;
+}
+
+/* Details/Summary Animation */
+.sidebar details > summary {
+    list-style: none;
+}
+
+.sidebar details > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Chevron Animation - Rotate when details is open */
+.sidebar details[open] > summary .chevron-icon {
+    transform: rotate(90deg);
+}
+
+.sidebar details:not([open]) > summary .chevron-icon {
+    transform: rotate(0deg);
+}
+
+/* Tab Component Enhancements */
+.tabs [role="tab"][aria-selected="true"] {
+    @apply bg-background text-foreground border-primary;
+}
+
+.tabs [role="tab"][aria-selected="false"] {
+    @apply text-muted-foreground hover:text-foreground;
+}
+
+/* Dark mode tab styling with better contrast */
+.tabs [role="tab"][aria-selected="true"] {
+    @apply dark:bg-primary dark:text-primary-foreground dark:border-primary;
+}
+
+/* Tab navigation hover states */
+.tabs [role="tab"]:hover {
+    @apply bg-muted;
+}
+
+/* Focus states for accessibility */
+.tabs [role="tab"]:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+}
