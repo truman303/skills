@@ -467,3 +467,7 @@ All reference files use `MyApp` (PascalCase) and `myapp` (lowercase) as placehol
 - [shared-domain.md](references/shared-domain.md) — Base classes, AppDbContext, IClock, Feature DI
 - [shared-control-flow.md](references/shared-control-flow.md) — ErrorOr, RazorPageExtensions, GlobalExceptionHandler, UnitOfWork
 - [shared-toasts-notifications.md](references/shared-toasts-notifications.md) — Toast/Message models, `_Message` and `_Toast` partials
+
+## Gotchas
+
+- The system uses DateTimeOffset for all genuine date time values. Where only a date is needed, use `DateOnly` instead of `DateTime`. This is to avoid the issue of DateTime being Kind=Unspecified on a specific input DateTime field.
