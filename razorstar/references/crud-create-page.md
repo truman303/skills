@@ -105,7 +105,7 @@ public class CreateModel : PageModel
                         <label for="active" class="text-sm font-medium">Active</label>
                     </div>
                 </section>
-                <footer>
+                <footer class="flex items-center justify-end gap-3">
                     <a href="/Items" class="btn btn-outline btn-sm text-black dark:text-gray-300">Cancel</a>
                     <button type="submit" class="btn btn-primary btn-ghost"
                             data-attr-disabled="!!$item.validationErrors.name"
@@ -119,7 +119,7 @@ public class CreateModel : PageModel
 
     <!-- Sidebar (4/12) -->
     <div class="lg:col-span-4 space-y-6">
-        <div class="card" data-show="$item.showGuidelines">
+        <div class="card">
             <header>
                 <div class="flex items-center justify-between">
                     <h3>Guidelines</h3>
@@ -129,7 +129,7 @@ public class CreateModel : PageModel
                     </button>
                 </div>
             </header>
-            <section>
+            <section data-show="$item.showGuidelines">
                 <ul class="list-disc pl-4 space-y-2 text-sm text-muted-foreground">
                     <li>Name must be unique and 2-100 characters</li>
                     <li>Active items are visible to users</li>
@@ -144,5 +144,7 @@ public class CreateModel : PageModel
 
 - **Signals**: singular namespace (`item`), no change tracking needed
 - **Submit disable**: validation errors only — `data-attr-disabled="!!$item.validationErrors.name"`
+- **Minimise pattern**: `data-show` on `<section>` only, not the whole card — header and toggle button always visible
+- **Footer spacing**: `flex items-center justify-end gap-3` on all `<footer>` elements
 - **Success flow**: `TempData["SuccessMessage"]` + `RedirectToPage("Details")`
 - **Error flow**: `ErrorDetails` + re-render same page

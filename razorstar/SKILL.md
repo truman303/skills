@@ -23,6 +23,8 @@ This skill guides you through a **conversational workflow** — not just what to
 - [Architecture Principles](#architecture-principles)
 - [The Separation Rule](#the-separation-rule)
 - [Name Substitution Reference](#name-substitution-reference)
+- [Additional References](#additional-references)
+- [Gotchas](#gotchas)
 
 ## Tech Stack
 
@@ -81,7 +83,31 @@ Capture:
 - **Key fields** with types (e.g., Name: string, Price: decimal, IsActive: bool)
 - **Any special behavior** (e.g., "Products can be archived", "Tickets have a status workflow")
 
-### 1C. Confirm the Plan
+### 1C. Review and Customise Theme & Images
+
+Before scaffolding, advise the user to review and replace the default images and theme in this skill's `assets/` folder:
+
+> *"Before we start building, you may want to customise the look and feel. The skill ships with defaults you can replace:*
+>
+> - **Logo** (`assets/images/logo.webp`) — Your app logo. Recommended: WebP format, ~200x60px for sidebar display, or square ~128x128px for the login card.
+> - **Background image** (`assets/css/landing.css` references `/images/key-visual.jpg`) — Hero/background image for the login page. Recommended: JPEG, 1920x1080px minimum. If no image is available, a CSS gradient fallback is used.
+> - **Theme** (`assets/css/theme.css`) — CSS variables for colours, border radii, and spacing. You can generate a custom theme from [tweakcn](https://tweakcn.com) and paste it into `theme.css`.
+>
+> *Would you like to customise these now, or go with the defaults and tweak later?"*
+
+### 1D. Choose Navigation Layout
+
+Ask: *"Which navigation layout would you prefer?"*
+
+| Option | Description |
+|--------|-------------|
+| **Sidebar** (default) | Left panel with collapsible sidebar. Best for apps with many sections or deep navigation. |
+| **Top Nav** | Horizontal navigation bar at the top. Clean look for simpler apps with fewer sections. |
+| **Creative** | No fixed navigation — just a minimal header with the app name, dark mode toggle, and profile link. Best for single-purpose apps, dashboards, or landing-page-style layouts where navigation is embedded in the page content itself. |
+
+Capture the choice — it determines which `_Layout.cshtml` template to use in Step 6. See [project-scaffolding.md](references/project-scaffolding.md) for all three layout templates.
+
+### 1E. Confirm the Plan
 
 Before writing code, summarize what you'll build and get a thumbs-up:
 
@@ -91,6 +117,8 @@ Before writing code, summarize what you'll build and get a thumbs-up:
 > 3. *Login page with dev credentials (admin / Admin123!)*
 > 4. *Dashboard with a summary card*
 > 5. *Full CRUD for **Products** (Name, Price, IsActive) — Index table with search & pagination, Create, Edit, and Details pages*
+> 6. *Navigation: **Sidebar** layout* *(or Top Nav / Creative — per your choice)*
+> 7. *Theme: default* *(or custom — per your earlier choice)*
 >
 > *Sound good, or do you want to adjust anything?"*
 
@@ -240,14 +268,22 @@ For the complete `Program.cs` template, middleware pipeline order, and per-featu
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 ```
 
-**`_Layout.cshtml`** must include:
+**`_Layout.cshtml`** — use the template matching the user's layout choice from Phase 1 Step 1D:
+
+| Layout | Key Features |
+|--------|-------------|
+| **Sidebar** (default) | Basecoat sidebar, collapsible nav, header with dark mode toggle + profile |
+| **Top Nav** | Horizontal nav bar at top, full-width content |
+| **Creative** | Minimal header only (app name, dark mode, profile), no navigation chrome — pages manage their own navigation |
+
+All three layouts share:
 - `<head>`: basecoat.all.min.js, datastar.js, basecoat.css, tailwind-output.css, theme.css
-- `<body>`: DataStar signal initialization (`antiForgeryToken`, `loading`, `themeMode`, `user`, `sidebarCollapsed`, `currentPage`)
-- Basecoat sidebar with navigation
-- Main content area with header, `@RenderBody()`, and footer
+- `<body>`: DataStar signal initialization (`antiForgeryToken`, `loading`, `themeMode`, `user`, `currentPage`)
+- Header with **dark mode toggle** and **profile link** (username as ghost button)
+- Main content area with `@RenderBody()` and footer
 - Toast container: `<div id="toaster" class="toaster" data-align="end"></div>`
 
-For the complete layout template, see [project-scaffolding.md](references/project-scaffolding.md).
+For all three layout templates, see [project-scaffolding.md](references/project-scaffolding.md).
 
 ### Step 7: Create Login and Dashboard Pages
 
@@ -274,42 +310,42 @@ For complete implementations, see [dashboard-page.md](references/dashboard-page.
 
 **This is a checkpoint. Do not proceed to building features until the user has confirmed the app runs.**
 
-### What needs to happen before `dotnet run`
+### Post-Scaffolding Checklist
 
-1. **Start the dev environment** — use the startup script from Step 2, which checks Docker, starts the PostgreSQL container, and waits for it to be healthy:
-   ```powershell
-   .\scripts\start-dev-environment.ps1
-   ```
-   Or manually: `docker compose up -d && docker compose ps` (should show `myapp-db` as "healthy").
+Present these numbered steps to the user. They must complete them in order:
 
-2. **Ask the user to create the initial migration** — the app auto-migrates on startup, but the migration must exist first:
-   > *"The scaffolding is complete. Before we run the app, please create the initial database migration:*
-   > ```powershell
-   > dotnet ef migrations add InitialCreate
-   > ```
-   > *Let me know when it's ready."*
+| # | Step | Command | Notes |
+|---|------|---------|-------|
+| 1 | Start dev environment | `.\scripts\start-dev-environment.ps1` | Checks Docker, starts Postgres, waits for health |
+| 2 | Create initial migration | `dotnet ef migrations add InitialCreate` | Must exist before first run |
+| 3 | Run the app | `dotnet run` | Auto-applies migration, seeds dev user |
+| 4 | Open the URL | From console output (e.g., `https://localhost:5001`) | |
+| 5 | Log in | **admin** / **Admin123!** | Lands on Dashboard |
 
-3. **Tailwind CSS** — the `tailwind-output.css` file was copied from assets for the initial run. For ongoing development, the user will want to run the Tailwind watcher in a second terminal:
-   ```powershell
-   ./tailwindcss -i wwwroot/css/site.css -o wwwroot/css/tailwind-output.css --watch
-   ```
-
-### Start the app
-
-Once the migration is created:
-
+Optional: For ongoing CSS development, run the Tailwind watcher in a second terminal:
 ```powershell
-dotnet run
+./tailwindcss -i wwwroot/css/site.css -o wwwroot/css/tailwind-output.css --watch
 ```
 
-The app will:
-1. Auto-apply the migration (creates Identity tables in PostgreSQL)
-2. Seed a dev user: **admin** / **Admin123!**
-3. Start listening (typically `https://localhost:5001` or the port shown in console output)
+(The initial `tailwind-output.css` was copied from assets, so this is only needed when modifying styles.)
+
+### Tell the user what to expect
+
+After scaffolding, present the checklist:
+
+> *"The boilerplate is ready. Here's how to run it:*
+>
+> 1. *Start the dev environment: `.\scripts\start-dev-environment.ps1`*
+> 2. *Create the initial migration: `dotnet ef migrations add InitialCreate`*
+> 3. *Run the app: `dotnet run`*
+> 4. *Open the URL from the console output*
+> 5. *Sign in with **admin** / **Admin123!***
+>
+> *Let me know when you're in and I'll start building the [Entity] feature."*
 
 ### What the user sees
 
-**Login page** (`/Auth/Login` — all pages redirect here until authenticated):
+**Login page** (`/Auth/Login` — unauthenticated users are redirected here automatically):
 - A centered card over a background (gradient or image) with frosted-glass styling
 - The app logo and name at the top
 - Username and password fields with icons
@@ -317,24 +353,9 @@ The app will:
 
 **After logging in with admin / Admin123!:**
 - **Dashboard** (`/Dashboard/Index`) — a welcome message ("Welcome back, admin"), a summary card grid (empty counts initially since no features have data yet), and a Quick Actions section
-- **Sidebar** on the left with the app name and a Dashboard link
-- **Header** showing the current page title
+- **Header** showing the current page title, a **dark mode toggle**, and a **profile link** with the username
+- **Navigation** matching the chosen layout (sidebar, top nav, or creative)
 - **Footer** with copyright
-
-### Tell the user what to expect
-
-After scaffolding, give the user clear instructions:
-
-> *"The boilerplate is ready. Here's how to run it:*
->
-> 1. *Start the dev environment: `.\scripts\start-dev-environment.ps1`  (checks Docker, starts Postgres, waits for health)*
-> 2. *Create the initial migration: `dotnet ef migrations add InitialCreate`*
-> 3. *Run the app: `dotnet run`*
-> 4. *Open the URL from the console output (e.g., `https://localhost:5001`)*
-> 5. *You'll see the login page — sign in with **admin** / **Admin123!***
-> 6. *After login, you'll land on the Dashboard*
->
-> *Let me know when you're in and I'll start building the [Entity] feature."*
 
 Wait for the user to confirm the app runs before proceeding.
 
@@ -467,7 +488,3 @@ All reference files use `MyApp` (PascalCase) and `myapp` (lowercase) as placehol
 - [shared-domain.md](references/shared-domain.md) — Base classes, AppDbContext, IClock, Feature DI
 - [shared-control-flow.md](references/shared-control-flow.md) — ErrorOr, RazorPageExtensions, GlobalExceptionHandler, UnitOfWork
 - [shared-toasts-notifications.md](references/shared-toasts-notifications.md) — Toast/Message models, `_Message` and `_Toast` partials
-
-## Gotchas
-
-- The system uses DateTimeOffset for all genuine date time values. Where only a date is needed, use `DateOnly` instead of `DateTime`. This is to avoid the issue of DateTime being Kind=Unspecified on a specific input DateTime field.
