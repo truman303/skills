@@ -483,3 +483,23 @@ The web should be accessible to everyone. Datastar stays out of your way and lea
 </button>
 <div data-attr:aria-hidden="$_menuOpen ? 'false' : 'true'"></div>
 ```
+
+## Gotchas
+
+### DateTimeOffset vs DateTime vs DateOnly
+
+PostgreSQL's `timestamp with time zone` requires UTC values. The system uses `DateTimeOffset` for all genuine date-time values (e.g., `CreatedTs`, `UpdatedTs`).
+
+**Never use bare `DateTime`** for entity properties stored in PostgreSQL — you will get:
+
+> `ArgumentException: Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone', only UTC is supported. Note that it's not possible to mix DateTimes with different Kinds in an array, range, or multirange. (Parameter 'value')`
+
+**Rules:**
+- Timestamps / audit fields → `DateTimeOffset` (always UTC via `IClock.UtcNow`)
+- Date-only fields (e.g., birth date, due date) → `DateOnly`
+- Never use bare `DateTime` for database-persisted properties
+- When creating `DateTimeOffset` values, always use `DateTimeOffset.UtcNow` or the injected `IClock.UtcNow`, never `DateTime.Now`
+
+### Razor Pages Routing
+
+Details pages live at `Pages/Items/Details.cshtml` with `@page "{id}"`, making the route `/Items/Details/{id}` — **not** `/Items/{id}`. Always use tag helpers (`asp-page="Details" asp-route-id="@item.Id"`) or the full explicit path.

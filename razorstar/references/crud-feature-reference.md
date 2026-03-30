@@ -30,6 +30,19 @@ Each page type has its own reference with complete PageModel and Razor template:
 - [crud-edit-page.md](crud-edit-page.md) — Change tracking, unsaved changes warning, danger zone, delete modal
 - [crud-details-page.md](crud-details-page.md) — Read-only view, Quick Actions sidebar, statistics
 
+## Routing Convention
+
+Detail and Edit pages live in subfolders of `Pages/Items/`, so their routes include the page name:
+
+| Page | File | Route |
+|------|------|-------|
+| Index | `Pages/Items/Index.cshtml` | `/Items` |
+| Create | `Pages/Items/Create.cshtml` | `/Items/Create` |
+| Details | `Pages/Items/Details.cshtml` (`@page "{id}"`) | `/Items/Details/{id}` |
+| Edit | `Pages/Items/Edit.cshtml` (`@page "{id}"`) | `/Items/Edit/{id}` |
+
+**Always use tag helpers** (`asp-page="Details" asp-route-id="@item.Id"`) for links rather than hardcoded URLs. If you must hardcode, use the full path (e.g., `/Items/Details/{id}`, not `/Items/{id}`).
+
 ## Handler Pattern Summary
 
 | Handler | Success | Error |

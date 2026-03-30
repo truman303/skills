@@ -273,6 +273,7 @@ builder.Services.AddItemServices();
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/");
+    options.Conventions.AllowAnonymousToPage("/Index");
     options.Conventions.AllowAnonymousToPage("/Auth/Login");
     options.Conventions.AllowAnonymousToPage("/Error");
 });
@@ -320,7 +321,11 @@ app.MapRazorPages().WithStaticAssets();
 await app.RunAsync();
 ```
 
-## Layout Template (_Layout.cshtml)
+## Layout Templates (_Layout.cshtml)
+
+Three layout options are available. Use the one matching the user's choice from Phase 1 Step 1D.
+
+### Option A: Sidebar Layout (Default)
 
 ```html
 <!DOCTYPE html>
@@ -388,7 +393,24 @@ await app.RunAsync();
         <header class="border-b border-gray-300 dark:border-gray-700 px-6 py-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold" data-text="$currentPage">@ViewData["Title"]</h2>
-                <!-- Theme toggle, user menu etc. -->
+                <div class="flex items-center gap-3">
+                    <!-- Dark mode toggle -->
+                    <button type="button"
+                            class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                            data-on-click="
+                                $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
+                                document.documentElement.classList.toggle('dark');
+                                localStorage.setItem('themeMode', $themeMode);"
+                            aria-label="Toggle dark mode">
+                        <svg data-show="$themeMode === 'light'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                        <svg data-show="$themeMode === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    </button>
+                    <!-- Profile link -->
+                    <a href="/Auth/Profile" class="btn btn-ghost btn-sm text-muted-foreground hover:text-foreground">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span data-text="$user.name">@(User.Identity?.Name ?? "Guest")</span>
+                    </a>
+                </div>
             </div>
         </header>
 
@@ -409,6 +431,209 @@ await app.RunAsync();
 </body>
 </html>
 ```
+
+### Option B: Top Nav Layout
+
+Horizontal navigation bar — no sidebar. Full-width content area. Best for apps with fewer sections.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MyApp</title>
+    <script nonce>
+        (() => {
+            try {
+                const stored = localStorage.getItem('themeMode');
+                const isDark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+                if (isDark) document.documentElement.classList.add('dark');
+                window.initialThemeMode = isDark ? 'dark' : 'light';
+            } catch (_) { }
+        })();
+    </script>
+    <script type="module" src="~/js/basecoat.all.min.js" defer></script>
+    <script type="module" src="~/js/datastar.js"></script>
+    <link rel="stylesheet" href="~/css/basecoat.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tailwind-output.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+</head>
+
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery AntiForgery
+@{
+    var tokens = AntiForgery.GetAndStoreTokens(Context);
+}
+
+<body data-signals="{
+        antiForgeryToken: '@tokens.RequestToken',
+        loading: false,
+        themeMode: window.initialThemeMode || 'light',
+        user: {
+            name: '@(User.Identity?.Name ?? "Guest")',
+            isAuthenticated: @(User.Identity?.IsAuthenticated.ToString().ToLower())
+        },
+        currentPage: '@ViewData["Title"]'
+    }">
+
+    <!-- Top Navigation Bar -->
+    <nav class="border-b border-gray-300 dark:border-gray-700 bg-background">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+            <!-- Left: Brand + Nav Links -->
+            <div class="flex items-center gap-6">
+                <a href="/" class="text-xl font-bold text-foreground">MyApp</a>
+                <div class="flex items-center gap-1">
+                    <a href="/"
+                       class="px-3 py-2 rounded-md text-sm font-medium transition-colors @(ViewData["Title"]?.ToString() == "Dashboard" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")">
+                        Dashboard
+                    </a>
+                    <!-- Add nav links per feature -->
+                </div>
+            </div>
+            <!-- Right: Dark mode + Profile -->
+            <div class="flex items-center gap-3">
+                <button type="button"
+                        class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                        data-on-click="
+                            $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
+                            document.documentElement.classList.toggle('dark');
+                            localStorage.setItem('themeMode', $themeMode);"
+                        aria-label="Toggle dark mode">
+                    <svg data-show="$themeMode === 'light'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    <svg data-show="$themeMode === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                </button>
+                <a href="/Auth/Profile" class="btn btn-ghost btn-sm text-muted-foreground hover:text-foreground">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span data-text="$user.name">@(User.Identity?.Name ?? "Guest")</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content (full width) -->
+    <main class="max-w-7xl mx-auto min-h-screen">
+        <div class="p-6">
+            @RenderBody()
+        </div>
+
+        <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            &copy; @DateTime.Now.Year MyApp
+        </footer>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toaster" class="toaster" data-align="end"></div>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+```
+
+**Adding nav links for features (Top Nav):**
+```html
+<a href="/Items"
+   class="px-3 py-2 rounded-md text-sm font-medium transition-colors @(ViewData["Title"]?.ToString() == "Items" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")">
+    Items
+</a>
+```
+
+### Option C: Creative Layout
+
+Minimal chrome — just a header strip with app name, dark mode toggle, and profile. No sidebar or top navigation. Best for single-purpose apps, dashboards, or when navigation is embedded in page content.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MyApp</title>
+    <script nonce>
+        (() => {
+            try {
+                const stored = localStorage.getItem('themeMode');
+                const isDark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+                if (isDark) document.documentElement.classList.add('dark');
+                window.initialThemeMode = isDark ? 'dark' : 'light';
+            } catch (_) { }
+        })();
+    </script>
+    <script type="module" src="~/js/basecoat.all.min.js" defer></script>
+    <script type="module" src="~/js/datastar.js"></script>
+    <link rel="stylesheet" href="~/css/basecoat.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tailwind-output.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+</head>
+
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery AntiForgery
+@{
+    var tokens = AntiForgery.GetAndStoreTokens(Context);
+}
+
+<body data-signals="{
+        antiForgeryToken: '@tokens.RequestToken',
+        loading: false,
+        themeMode: window.initialThemeMode || 'light',
+        user: {
+            name: '@(User.Identity?.Name ?? "Guest")',
+            isAuthenticated: @(User.Identity?.IsAuthenticated.ToString().ToLower())
+        },
+        currentPage: '@ViewData["Title"]'
+    }"
+    class="min-h-screen flex flex-col">
+
+    <!-- Minimal Header -->
+    <header class="border-b border-gray-300 dark:border-gray-700 bg-background">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+            <a href="/" class="text-xl font-bold text-foreground">MyApp</a>
+            <div class="flex items-center gap-3">
+                <!-- Dark mode toggle -->
+                <button type="button"
+                        class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                        data-on-click="
+                            $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
+                            document.documentElement.classList.toggle('dark');
+                            localStorage.setItem('themeMode', $themeMode);"
+                        aria-label="Toggle dark mode">
+                    <svg data-show="$themeMode === 'light'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    <svg data-show="$themeMode === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                </button>
+                <!-- Profile link -->
+                <a href="/Auth/Profile" class="btn btn-ghost btn-sm text-muted-foreground hover:text-foreground">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span data-text="$user.name">@(User.Identity?.Name ?? "Guest")</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Full-width content — pages own their own layout -->
+    <main class="flex-1">
+        <div class="max-w-7xl mx-auto p-6">
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        &copy; @DateTime.Now.Year MyApp
+    </footer>
+
+    <!-- Toast container -->
+    <div id="toaster" class="toaster" data-align="end"></div>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+```
+
+**When to use Creative layout:** The Creative layout gives pages full control over their own structure. Navigation between sections (if any) is handled by the pages themselves via breadcrumbs, cards with links, or inline navigation elements. It works well for:
+- Single-purpose apps (one main dashboard or workflow)
+- Apps where the "navigation" is the content itself (e.g., card grids linking to sections)
+- Kiosk/display-style applications
+
+---
 
 ## Pages _ViewImports.cshtml
 

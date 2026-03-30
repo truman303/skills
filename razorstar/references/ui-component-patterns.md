@@ -202,9 +202,32 @@ Color guide: Gray=idle, Orange=in-progress, Green=success, Red=error.
 <div class="card">
     <header><h2>Title</h2><p>Description</p></header>
     <section class="grid gap-6"><!-- Fields --></section>
-    <footer><!-- Actions --></footer>
+    <footer class="flex items-center justify-end gap-3"><!-- Actions --></footer>
 </div>
 ```
+
+### Collapsible Card (Minimise, not Close)
+
+Place `data-show` on the `<section>` only — the card and header always remain visible so the user can re-expand:
+
+```html
+<div class="card">
+    <header>
+        <div class="flex items-center justify-between">
+            <h3>Guidelines</h3>
+            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                    data-on-click__passive="$item.showGuidelines = !$item.showGuidelines">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showGuidelines }"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+        </div>
+    </header>
+    <section data-show="$item.showGuidelines">
+        <!-- Content here -->
+    </section>
+</div>
+```
+
+**Never** put `data-show` on the card wrapper itself — that hides the entire card including the toggle button.
 
 ## Breadcrumb Navigation
 
@@ -313,25 +336,25 @@ Always include in this exact order at the top of content:
 
 ## Danger Zone (Edit Pages)
 
+Uses the collapsible card pattern — `data-show` on `<section>` only so the header toggle always remains visible:
+
 ```html
-<div class="lg:col-span-8">
-    <div class="card border-red-200 dark:border-red-900" data-show="$item.showDangerZone">
-        <header>
-            <div class="flex items-center justify-between">
-                <h3 class="text-red-600">Danger Zone</h3>
-                <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
-                        data-on-click__passive="$item.showDangerZone = !$item.showDangerZone">
-                    <svg data-class="{ 'rotate-180': $item.showDangerZone }"><!-- chevron --></svg>
-                </button>
-            </div>
-        </header>
-        <section>
-            <p class="text-sm text-muted-foreground mb-4">Permanently delete this item. This cannot be undone.</p>
-            <button type="button" class="btn-destructive"
-                    data-on-click__passive="$item.showDeleteModal = true">
-                Delete Item
+<div class="card border-red-200 dark:border-red-900 mt-6">
+    <header>
+        <div class="flex items-center justify-between">
+            <h3 class="text-red-600">Danger Zone</h3>
+            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                    data-on-click__passive="$item.showDangerZone = !$item.showDangerZone">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showDangerZone }"><path d="m6 9 6 6 6-6"/></svg>
             </button>
-        </section>
-    </div>
+        </div>
+    </header>
+    <section data-show="$item.showDangerZone">
+        <p class="text-sm text-muted-foreground mb-4">Permanently delete this item. This cannot be undone.</p>
+        <button type="button" class="btn-destructive"
+                data-on-click__passive="$item.showDeleteModal = true">
+            Delete Item
+        </button>
+    </section>
 </div>
 ```

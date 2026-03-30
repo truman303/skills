@@ -395,6 +395,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/");
+    options.Conventions.AllowAnonymousToPage("/Index");
     options.Conventions.AllowAnonymousToPage("/Auth/Login");
     options.Conventions.AllowAnonymousToPage("/Error");
 });
@@ -434,7 +435,7 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
 
 ## Pages/Index.cshtml.cs (Root Redirect)
 
-The root `/` page should redirect authenticated users to the Dashboard:
+The root `/` page is marked `AllowAnonymous` (via convention in Program.cs) and routes users based on auth state. This avoids a 401 when unauthenticated users land on `/`:
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
@@ -446,7 +447,10 @@ public class IndexModel : PageModel
 {
     public IActionResult OnGet()
     {
-        return RedirectToPage("/Dashboard/Index");
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToPage("/Dashboard/Index");
+
+        return RedirectToPage("/Auth/Login");
     }
 }
 ```

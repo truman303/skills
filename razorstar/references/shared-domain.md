@@ -126,17 +126,21 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
 
 ## IClock.cs
 
+All timestamp properties on entities must use `DateTimeOffset`, never bare `DateTime`. PostgreSQL's `timestamp with time zone` requires UTC, and `DateTime` with `Kind=Unspecified` will throw at runtime. For date-only fields (birth date, due date, etc.) use `DateOnly` instead.
+
 ```csharp
 namespace MyApp.Shared.Clocks;
 
 public interface IClock
 {
     DateTimeOffset UtcNow { get; }
+    DateOnly Today { get; }
 }
 
 public class Clock : IClock
 {
     public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+    public DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
 }
 ```
 
