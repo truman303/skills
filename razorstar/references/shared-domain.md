@@ -95,13 +95,17 @@ public interface IHasDomainEvents
 
 ## AppDbContext.cs
 
+Inherits `IdentityDbContext<IdentityUser>` to provide Identity tables (users, roles, claims, etc.) alongside app entities:
+
 ```csharp
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Shared.Models;
 
 namespace MyApp.Features.Shared.Database;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<IdentityUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -110,12 +114,12 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        base.OnModelCreating(builder);
+
         builder.Ignore<List<IDomainEvent>>();
 
         // Apply entity configurations (one per feature aggregate)
         // builder.ApplyConfiguration(new ItemConfiguration());
-
-        base.OnModelCreating(builder);
     }
 }
 ```

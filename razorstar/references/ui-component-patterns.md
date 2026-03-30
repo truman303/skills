@@ -1,5 +1,21 @@
 # UI Component Patterns Reference
 
+## Table of Contents
+
+- [Button Styling](#button-styling)
+- [DataStar Signals](#datastar-signals)
+- [DataStar Directives Quick Reference](#datastar-directives-quick-reference)
+- [Button Disable Logic](#button-disable-logic)
+- [Dropdown Menu (Basecoat)](#dropdown-menu-basecoat)
+- [Status Badges](#status-badges)
+- [Page Layouts](#page-layouts)
+- [Breadcrumb Navigation](#breadcrumb-navigation)
+- [Message Stack (Required on ALL Pages)](#message-stack-required-on-all-pages)
+- [Notification Decision Tree](#notification-decision-tree)
+- [Client-Side Validation Pattern](#client-side-validation-pattern)
+- [Delete Confirmation Dialog](#delete-confirmation-dialog)
+- [Danger Zone (Edit Pages)](#danger-zone-edit-pages)
+
 ## Button Styling
 
 ### Primary Actions (Add New, Create, Submit)

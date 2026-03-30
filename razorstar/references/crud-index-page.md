@@ -2,6 +2,12 @@
 
 Table/list page with search, pagination, SSE fragment updates, and inline delete.
 
+## Table of Contents
+
+- [Index.cshtml.cs](#indexcshtmlcs-pagemodel)
+- [Index.cshtml](#indexcshtml-main-page)
+- [_ItemsTable.cshtml](#_itemstablecshtml-table-partial)
+
 ## Index.cshtml.cs (PageModel)
 
 ```csharp
