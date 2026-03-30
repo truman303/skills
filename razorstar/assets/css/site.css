@@ -61,3 +61,13 @@
 .tabs [role="tab"]:focus-visible {
     @apply outline-2 outline-offset-2 outline-primary;
 }
+
+/* Basecoat hardcodes text-white on destructive components, but tweakcn
+   lets users customise --destructive-foreground. This override makes it work. */
+.btn-destructive,
+.btn-sm-destructive,
+.btn-lg-destructive,
+.btn-icon-destructive,
+.badge-destructive {
+    color: var(--destructive-foreground, white);
+}

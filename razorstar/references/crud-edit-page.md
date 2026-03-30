@@ -177,7 +177,7 @@ public class EditModel : PageModel
                     <div data-show="$item.hasUnsavedChanges" class="mr-auto p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
                         <p class="text-sm text-amber-800 dark:text-amber-200 flex items-center">You have unsaved changes</p>
                     </div>
-                    <a asp-page="Details" asp-route-id="@Model.Id" class="btn btn-outline btn-sm text-black dark:text-gray-300">Cancel</a>
+                    <a asp-page="Details" asp-route-id="@Model.Id" class="btn btn-outline btn-sm text-foreground">Cancel</a>
                     <button type="submit" class="btn btn-primary btn-ghost"
                             data-attr-disabled="!!$item.validationErrors.name || !$item.hasUnsavedChanges"
                             data-on-click__once__passive="$item.loading = true">
@@ -192,7 +192,7 @@ public class EditModel : PageModel
             <header>
                 <div class="flex items-center justify-between">
                     <h3 class="text-red-600">Danger Zone</h3>
-                    <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                    <button type="button" class="btn btn-outline btn-sm text-foreground"
                             data-on-click__passive="$item.showDangerZone = !$item.showDangerZone">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showDangerZone }"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
@@ -215,7 +215,7 @@ public class EditModel : PageModel
             <header>
                 <div class="flex items-center justify-between">
                     <h3>Guidelines</h3>
-                    <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                    <button type="button" class="btn btn-outline btn-sm text-foreground"
                             data-on-click__passive="$item.showEditGuidelines = !$item.showEditGuidelines">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showEditGuidelines }"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
@@ -273,7 +273,7 @@ public class EditModel : PageModel
             </div>
         </section>
         <footer class="flex items-center justify-end gap-3">
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+            <button type="button" class="btn btn-outline btn-sm text-foreground"
                     data-on-click__passive="$item.showDeleteModal = false; $item.deleteConfirmText = ''">
                 Cancel
             </button>
@@ -307,7 +307,7 @@ The `data-show` is on the `<section>` only — the header with the toggle button
     <header>
         <div class="flex items-center justify-between">
             <h3 class="text-red-600">Danger Zone</h3>
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+            <button type="button" class="btn btn-outline btn-sm text-foreground"
                     data-on-click__passive="$item.showDangerZone = !$item.showDangerZone">
                 <svg data-class="{ 'rotate-180': $item.showDangerZone }"><!-- chevron --></svg>
             </button>
@@ -345,7 +345,7 @@ The `data-show` is on the `<section>` only — the header with the toggle button
             </div>
         </section>
         <footer class="flex items-center justify-end gap-3">
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+            <button type="button" class="btn btn-outline btn-sm text-foreground"
                     data-on-click__passive="$item.showDeleteModal = false; $item.deleteConfirmText = ''">
                 Cancel
             </button>

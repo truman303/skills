@@ -216,11 +216,11 @@ wwwroot/
 
 ### theme.css (CSS Variables)
 
-Refer to the theme.css file in the assets folder for the complete list of CSS variables.
+Refer to the theme.css file in the assets folder for the complete list of CSS variables. The file has clear comments marking where to paste [tweakcn](https://tweakcn.com) output — replace the `:root` and `.dark` blocks only. The `@theme inline` block at the bottom covers fonts, shadows, and tracking that Basecoat does not register; the colour mappings are handled by `basecoat.css`.
 
 ### Tailwind CSS v4 Setup (Standalone CLI)
 
-Tailwind v4 uses CSS-based configuration (no `tailwind.config.js`). The `@theme inline` block in `theme.css` bridges CSS variables to Tailwind utilities.
+Tailwind v4 uses CSS-based configuration (no `tailwind.config.js`). The `@theme` block in `basecoat.css` and the `@theme inline` block in `theme.css` together bridge CSS variables to Tailwind utilities.
 
 ```powershell
 # Download standalone Tailwind CLI (for air-gapped use)
@@ -390,13 +390,26 @@ Three layout options are available. Use the one matching the user's choice from 
 
     <!-- Main Content -->
     <main class="sidebar-content min-h-screen">
-        <header class="border-b border-gray-300 dark:border-gray-700 px-6 py-4">
+        <header class="border-b border-border px-6 py-4">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold" data-text="$currentPage">@ViewData["Title"]</h2>
+                <div class="flex items-center gap-3">
+                    <button type="button"
+                            class="btn btn-outline btn-sm text-foreground"
+                            data-on-click__passive="document.dispatchEvent(new CustomEvent('basecoat:sidebar')); $sidebarCollapsed = !$sidebarCollapsed"
+                            aria-label="Toggle sidebar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" x2="20" y1="6" y2="6" />
+                            <line x1="4" x2="20" y1="12" y2="12" />
+                            <line x1="4" x2="20" y1="18" y2="18" />
+                        </svg>
+                    </button>
+                    <h2 class="text-lg font-semibold" data-text="$currentPage">@ViewData["Title"]</h2>
+                </div>
                 <div class="flex items-center gap-3">
                     <!-- Dark mode toggle -->
                     <button type="button"
-                            class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                            class="btn btn-outline btn-sm text-foreground"
                             data-on-click="
                                 $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
                                 document.documentElement.classList.toggle('dark');
@@ -406,7 +419,7 @@ Three layout options are available. Use the one matching the user's choice from 
                         <svg data-show="$themeMode === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
                     </button>
                     <!-- Profile link -->
-                    <a href="/Auth/Profile" class="btn btn-ghost btn-sm text-muted-foreground hover:text-foreground">
+                    <a href="/Auth/Profile" class="btn btn-ghost btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         <span data-text="$user.name">@(User.Identity?.Name ?? "Guest")</span>
                     </a>
@@ -418,7 +431,7 @@ Three layout options are available. Use the one matching the user's choice from 
             @RenderBody()
         </div>
 
-        <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <footer class="border-t border-border px-6 py-4 text-center text-sm text-muted-foreground">
             &copy; @DateTime.Now.Year MyApp
         </footer>
     </main>
@@ -477,7 +490,7 @@ Horizontal navigation bar — no sidebar. Full-width content area. Best for apps
     }">
 
     <!-- Top Navigation Bar -->
-    <nav class="border-b border-gray-300 dark:border-gray-700 bg-background">
+    <nav class="border-b border-border bg-background">
         <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <!-- Left: Brand + Nav Links -->
             <div class="flex items-center gap-6">
@@ -493,7 +506,7 @@ Horizontal navigation bar — no sidebar. Full-width content area. Best for apps
             <!-- Right: Dark mode + Profile -->
             <div class="flex items-center gap-3">
                 <button type="button"
-                        class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                        class="btn btn-outline btn-sm text-foreground"
                         data-on-click="
                             $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
                             document.documentElement.classList.toggle('dark');
@@ -516,7 +529,7 @@ Horizontal navigation bar — no sidebar. Full-width content area. Best for apps
             @RenderBody()
         </div>
 
-        <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <footer class="border-t border-border px-6 py-4 text-center text-sm text-muted-foreground">
             &copy; @DateTime.Now.Year MyApp
         </footer>
     </main>
@@ -584,13 +597,13 @@ Minimal chrome — just a header strip with app name, dark mode toggle, and prof
     class="min-h-screen flex flex-col">
 
     <!-- Minimal Header -->
-    <header class="border-b border-gray-300 dark:border-gray-700 bg-background">
+    <header class="border-b border-border bg-background">
         <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <a href="/" class="text-xl font-bold text-foreground">MyApp</a>
             <div class="flex items-center gap-3">
                 <!-- Dark mode toggle -->
                 <button type="button"
-                        class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                        class="btn btn-outline btn-sm text-foreground"
                         data-on-click="
                             $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
                             document.documentElement.classList.toggle('dark');
@@ -615,7 +628,7 @@ Minimal chrome — just a header strip with app name, dark mode toggle, and prof
         </div>
     </main>
 
-    <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+    <footer class="border-t border-border px-6 py-4 text-center text-sm text-muted-foreground">
         &copy; @DateTime.Now.Year MyApp
     </footer>
 

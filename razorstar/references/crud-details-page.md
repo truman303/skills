@@ -99,7 +99,7 @@ public class DetailsModel : PageModel
                         <h2>@Model.Name</h2>
                         <p>Item details</p>
                     </div>
-                    <span class="badge-outline @(Model.Active ? "bg-accent text-black dark:text-black" : "bg-muted text-black dark:text-white")">
+                    <span class="badge-outline @(Model.Active ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")">
                         @(Model.Active ? "Active" : "Inactive")
                     </span>
                 </div>
@@ -133,12 +133,12 @@ public class DetailsModel : PageModel
             <header><h3>Quick Actions</h3></header>
             <section class="grid gap-3">
                 <a asp-page="Edit" asp-route-id="@Model.Id"
-                   class="btn btn-outline btn-sm text-black dark:text-gray-300 w-full justify-start">
+                   class="btn btn-outline btn-sm text-foreground w-full justify-start">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                     Edit Item
                 </a>
                 <a asp-page="Index"
-                   class="btn btn-outline btn-sm text-black dark:text-gray-300 w-full justify-start">
+                   class="btn btn-outline btn-sm text-foreground w-full justify-start">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     Back to All Items
                 </a>
@@ -172,7 +172,7 @@ public class DetailsModel : PageModel
 ## Key Patterns
 
 - **Read-only** — no forms, no DataStar signals needed
-- **Only secondary buttons** — all actions use `btn btn-outline btn-sm text-black dark:text-gray-300`
+- **Only secondary buttons** — all actions use `btn btn-outline btn-sm text-foreground`
 - **Quick Actions sidebar** — links to Edit and Back to Index
 - **Statistics sidebar** — metadata like created by, dates
 - **Breadcrumb depth**: Dashboard > Items > ItemName (3 levels)

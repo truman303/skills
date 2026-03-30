@@ -9,12 +9,12 @@ body.landing-page {
 }
 
 .landing-card {
-    background-color: rgba(239, 239, 239, 0.75);
+    background-color: color-mix(in srgb, var(--card) 75%, transparent);
     backdrop-filter: blur(3px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
 }
 
 .dark .landing-card {
-    background-color: rgba(31, 41, 55, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: color-mix(in srgb, var(--card) 75%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 20%, transparent);
 }

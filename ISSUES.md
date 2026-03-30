@@ -1,6 +1,6 @@
 # Agent Skill Issues
 
-## RazorStar Issues
+## RazorStar Skill Issues
 
 The skill is currently quite opinionated which could make it inflexible. Over time lets whittle it down to the bare essentials and make it more flexible.
 
@@ -75,3 +75,7 @@ The user should be advised to review and change the images and theme in the refe
 The skill should support both side menu and top menu. The user should be able to choose which menu they want to use during the build process.
 
 **Fix:** Added Phase 1 Step 1D "Choose Navigation Layout" with three options: Sidebar (default), Top Nav, and Creative (no navigation chrome). Added complete layout templates for all three in `project-scaffolding.md`.
+
+### Issue 12: Refactored css to be more consistent [RESOLVED]
+
+I had overused tailwind to the point where the tweakcn themes were not looking consistent out the gate. This has been fixed and the css is now more consistent.

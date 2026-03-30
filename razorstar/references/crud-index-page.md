@@ -203,7 +203,7 @@ public static class ItemsToasts
                 <div id="page-size-dropdown" class="dropdown-menu">
                     <button type="button" id="page-size-dropdown-trigger"
                             aria-haspopup="menu" aria-controls="page-size-dropdown-menu" aria-expanded="false"
-                            class="btn btn-outline btn-sm text-black dark:text-gray-300">
+                            class="btn btn-outline btn-sm text-foreground">
                         <span data-text="$items.pageSize"></span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
@@ -226,7 +226,7 @@ public static class ItemsToasts
 
         <!-- Search -->
         <div class="relative">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
             <input type="text" placeholder="Search items..." class="btn-outline pl-10 pr-4 py-2 w-64"
@@ -255,7 +255,7 @@ public static class ItemsToasts
             </p>
         </section>
         <footer>
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300" data-on-click="el.closest('dialog').close()">Cancel</button>
+            <button type="button" class="btn btn-outline btn-sm text-foreground" data-on-click="el.closest('dialog').close()">Cancel</button>
             <form method="post" class="inline" data-indicator-items.loading
                   data-on-submit="el.closest('dialog').close(); @@post('/Items?handler=Delete', {
                       contentType: 'form',
@@ -318,8 +318,8 @@ public static class ItemsToasts
                             <td>
                                 <span class="badge-outline"
                                       data-class="{
-                                          'bg-accent text-black dark:text-black': @item.Active.ToString().ToLower(),
-                                          'bg-muted text-black dark:text-white': !@item.Active.ToString().ToLower()
+                                          'bg-accent text-accent-foreground': @item.Active.ToString().ToLower(),
+                                          'bg-muted text-muted-foreground': !@item.Active.ToString().ToLower()
                                       }">
                                     @(item.Active ? "Active" : "Inactive")
                                 </span>
