@@ -29,11 +29,11 @@
 
 ### Secondary Actions (Back, Cancel, View, Export, Toggle)
 ```html
-<a href="/Items" class="btn btn-outline btn-sm text-black dark:text-gray-300">
+<a href="/Items" class="btn btn-outline btn-sm text-foreground">
     <svg>...</svg>
     Back to Items
 </a>
-<button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300">Export</button>
+<button type="button" class="btn btn-outline btn-sm text-foreground">Export</button>
 ```
 
 ### Icon-Only (Table Row Actions)
@@ -144,7 +144,7 @@
             aria-haspopup="menu"
             aria-controls="my-dropdown-menu"
             aria-expanded="false"
-            class="btn btn-outline btn-sm text-black dark:text-gray-300">
+            class="btn btn-outline btn-sm text-foreground">
         <span data-text="...">Display</span>
         <svg class="ml-1"><!-- chevron --></svg>
     </button>
@@ -164,8 +164,8 @@
 ```html
 <span class="badge-outline"
       data-class="{
-          'bg-accent text-black dark:text-black': @item.Active.ToString().ToLower(),
-          'bg-muted text-black dark:text-white': !@item.Active.ToString().ToLower()
+          'bg-accent text-accent-foreground': @item.Active.ToString().ToLower(),
+          'bg-muted text-muted-foreground': !@item.Active.ToString().ToLower()
       }">
     @(item.Active ? "Active" : "Inactive")
 </span>
@@ -215,7 +215,7 @@ Place `data-show` on the `<section>` only — the card and header always remain 
     <header>
         <div class="flex items-center justify-between">
             <h3>Guidelines</h3>
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+            <button type="button" class="btn btn-outline btn-sm text-foreground"
                     data-on-click__passive="$item.showGuidelines = !$item.showGuidelines">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showGuidelines }"><path d="m6 9 6 6 6-6"/></svg>
             </button>
@@ -321,7 +321,7 @@ Always include in this exact order at the top of content:
             <p class="text-sm text-muted-foreground mt-3">Delete <strong data-text="$items.pendingDeleteName"></strong>?</p>
         </section>
         <footer>
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300" data-on-click="el.closest('dialog').close()">Cancel</button>
+            <button type="button" class="btn btn-outline btn-sm text-foreground" data-on-click="el.closest('dialog').close()">Cancel</button>
             <form method="post" class="inline"
                   data-on-submit="el.closest('dialog').close(); @@post('/Items?handler=Delete', {
                       contentType: 'form', headers: { 'RequestVerificationToken': $antiForgeryToken }
@@ -343,7 +343,7 @@ Uses the collapsible card pattern — `data-show` on `<section>` only so the hea
     <header>
         <div class="flex items-center justify-between">
             <h3 class="text-red-600">Danger Zone</h3>
-            <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+            <button type="button" class="btn btn-outline btn-sm text-foreground"
                     data-on-click__passive="$item.showDangerZone = !$item.showDangerZone">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showDangerZone }"><path d="m6 9 6 6 6-6"/></svg>
             </button>

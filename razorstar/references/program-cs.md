@@ -11,6 +11,9 @@ using StarFederation.Datastar.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load local secrets (generated from .env by start-dev-environment.ps1)
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
+
 // Datastar for SSE-powered UI updates
 builder.Services.AddDatastar();
 
@@ -62,12 +65,17 @@ if (app.Environment.IsDevelopment())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    // Seed dev user
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    if (await userManager.FindByNameAsync("admin") is null)
+    // Seed dev user from configuration (populated by appsettings.Local.json, generated from .env)
+    var devUsername = app.Configuration["DevSeed:Username"];
+    var devPassword = app.Configuration["DevSeed:Password"];
+    if (!string.IsNullOrEmpty(devUsername) && !string.IsNullOrEmpty(devPassword))
     {
-        var devUser = new IdentityUser { UserName = "admin", Email = "admin@myapp.local" };
-        await userManager.CreateAsync(devUser, "Admin123!");
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        if (await userManager.FindByNameAsync(devUsername) is null)
+        {
+            var devUser = new IdentityUser { UserName = devUsername, Email = $"{devUsername}@myapp.local" };
+            await userManager.CreateAsync(devUser, devPassword);
+        }
     }
 }
 
@@ -98,6 +106,7 @@ await app.RunAsync();
 
 | Registration | Purpose |
 |---|---|
+| `AddJsonFile("appsettings.Local.json", ...)` | Loads local secrets generated from `.env` |
 | `AddDatastar()` | Datastar SSE helpers |
 | `AddMediatR(...)` | CQRS command/query dispatching |
 | `AddDbContext<AppDbContext>(...)` | EF Core with PostgreSQL via connection string |
@@ -123,9 +132,10 @@ The order matters — authentication and authorization must come after routing:
 
 On startup in Development mode, the app:
 1. Auto-applies pending EF migrations
-2. Seeds a dev user: **admin** / **Admin123!** (email: `admin@myapp.local`)
+2. Reads `DevSeed:Username` and `DevSeed:Password` from `IConfiguration` (populated by `appsettings.Local.json`, which is generated from `.env` by the startup script)
+3. Seeds a dev user if those values are present and the user doesn't already exist
 
-Replace `myapp.local` in the email with the lowercase app name: `admin@{lowercase}.local`.
+Replace `myapp.local` in the email with the lowercase app name: `{devUsername}@{lowercase}.local`.
 
 ## Adding a New Feature
 

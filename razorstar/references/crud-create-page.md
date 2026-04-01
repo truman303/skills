@@ -106,7 +106,7 @@ public class CreateModel : PageModel
                     </div>
                 </section>
                 <footer class="flex items-center justify-end gap-3">
-                    <a href="/Items" class="btn btn-outline btn-sm text-black dark:text-gray-300">Cancel</a>
+                    <a href="/Items" class="btn btn-outline btn-sm text-foreground">Cancel</a>
                     <button type="submit" class="btn btn-primary btn-ghost"
                             data-attr-disabled="!!$item.validationErrors.name"
                             data-on-click__once__passive="$item.loading = true">
@@ -123,7 +123,7 @@ public class CreateModel : PageModel
             <header>
                 <div class="flex items-center justify-between">
                     <h3>Guidelines</h3>
-                    <button type="button" class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                    <button type="button" class="btn btn-outline btn-sm text-foreground"
                             data-on-click__passive="$item.showGuidelines = !$item.showGuidelines">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-class="{ 'rotate-180': $item.showGuidelines }"><path d="m6 9 6 6 6-6"/></svg>
                     </button>

@@ -1,6 +1,6 @@
 # Project Scaffolding Reference
 
-> **Placeholder convention:** `MyApp` (PascalCase) and `myapp` (lowercase) are placeholders throughout this file. Replace with the user's chosen app name. See the "Before You Begin" section in [SKILL.md](../SKILL.md) for the full substitution table.
+> **Placeholder convention:** `MyApp` (PascalCase) and `myapp` (lowercase) are placeholders throughout this file. Replace with the user's chosen app name. See the [Name Substitution](#name-substitution) section below for the full table.
 
 ## Table of Contents
 
@@ -16,6 +16,22 @@
 - [appsettings.json](#appsettingsjson)
 - [appsettings.Development.json](#appsettingsdevelopmentjson)
 
+## Name Substitution
+
+All reference files use `MyApp` (PascalCase) and `myapp` (lowercase) as placeholders. Substitute everywhere:
+
+| File / Context | What to replace |
+|---|---|
+| `dotnet new webapp -n MyApp` | Project name |
+| `docker-compose.yml` | Service name, container name, network (credentials come from `.env` via `${VAR}` interpolation) |
+| `.env` | POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEV_ADMIN_USERNAME, DEV_ADMIN_PASSWORD |
+| `appsettings.json` | Non-secret config only; secrets load from `appsettings.Local.json` (generated from `.env`) |
+| `_Layout.cshtml` | `<title>`, sidebar `<h1>`, footer `&copy;` |
+| `_ViewImports.cshtml` | `@using MyApp`, `@namespace MyApp.Pages` |
+| All `namespace` / `using` declarations | `MyApp.Shared.*`, `MyApp.Features.*`, `MyApp.Pages.*` |
+| `Program.cs` | Implicit via namespace |
+| `.csproj` | Project file name |
+
 ## Create Project
 
 ```powershell
@@ -25,7 +41,24 @@ cd MyApp
 
 ## Docker Setup (PostgreSQL)
 
-Create `docker-compose.yml` in the **solution root** (parent of the project folder):
+### `.env` file (solution root)
+
+Create a `.env` file in the solution root. This is the single source of truth for all dev credentials. Generate secure passwords — do not use well-known defaults.
+
+```
+# Dev environment credentials — DO NOT commit (gitignored)
+POSTGRES_DB=myapp
+POSTGRES_USER=myapp
+POSTGRES_PASSWORD=<generate-a-secure-password>
+DEV_ADMIN_USERNAME=admin
+DEV_ADMIN_PASSWORD=<generate-a-secure-password>
+```
+
+Replace `myapp` with the user's lowercase app name. Generate passwords that meet ASP.NET Identity requirements (at least 6 characters, with uppercase, lowercase, digit, and non-alphanumeric character).
+
+### `docker-compose.yml` (solution root)
+
+Credentials are injected from `.env` via `${VAR}` interpolation — no secrets in this file:
 
 ```yaml
 services:
@@ -34,16 +67,16 @@ services:
     container_name: myapp-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: myapp
-      POSTGRES_USER: myapp
-      POSTGRES_PASSWORD: myapp_dev_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - ./db/data/postgresql:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myapp -d myapp"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,9 +100,15 @@ docker compose up -d
 docker compose ps
 ```
 
-Add `db/` to `.gitignore` so local Postgres data isn't committed:
+### `.gitignore` entries
 
 ```
+# Dev credentials
+.env
+
+# Local appsettings with secrets (generated from .env)
+appsettings.Local.json
+
 # PostgreSQL local data
 db/
 ```
@@ -82,7 +121,7 @@ Copy the bundled script from the skill's `scripts/` folder into the project's `s
 scripts/start-dev-environment.ps1   ← copy from skill's scripts/start-dev-environment.ps1
 ```
 
-The script validates Docker, starts the database container, polls the health check until healthy, and prints next steps (including login credentials). It gives the user a one-command dev environment startup.
+The script validates Docker, starts the database container, polls the health check until healthy, generates `appsettings.Local.json` from `.env` values, and prints next steps. It gives the user a one-command dev environment startup.
 
 **After copying, replace placeholders:**
 - `MyApp` → PascalCase app name (in the "Next steps" output and banner)
@@ -216,11 +255,11 @@ wwwroot/
 
 ### theme.css (CSS Variables)
 
-Refer to the theme.css file in the assets folder for the complete list of CSS variables.
+Refer to the theme.css file in the assets folder for the complete list of CSS variables. The file has clear comments marking where to paste [tweakcn](https://tweakcn.com) output — replace the `:root` and `.dark` blocks only. The `@theme inline` block at the bottom covers fonts, shadows, and tracking that Basecoat does not register; the colour mappings are handled by `basecoat.css`.
 
 ### Tailwind CSS v4 Setup (Standalone CLI)
 
-Tailwind v4 uses CSS-based configuration (no `tailwind.config.js`). The `@theme inline` block in `theme.css` bridges CSS variables to Tailwind utilities.
+Tailwind v4 uses CSS-based configuration (no `tailwind.config.js`). The `@theme` block in `basecoat.css` and the `@theme inline` block in `theme.css` together bridge CSS variables to Tailwind utilities.
 
 ```powershell
 # Download standalone Tailwind CLI (for air-gapped use)
@@ -237,6 +276,9 @@ using Microsoft.EntityFrameworkCore;
 using StarFederation.Datastar.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load local secrets (generated from .env by start-dev-environment.ps1)
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
 
 // Datastar for SSE-powered UI updates
 builder.Services.AddDatastar();
@@ -289,12 +331,17 @@ if (app.Environment.IsDevelopment())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    // Seed dev user
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    if (await userManager.FindByNameAsync("admin") is null)
+    // Seed dev user from configuration (populated by appsettings.Local.json, generated from .env)
+    var devUsername = app.Configuration["DevSeed:Username"];
+    var devPassword = app.Configuration["DevSeed:Password"];
+    if (!string.IsNullOrEmpty(devUsername) && !string.IsNullOrEmpty(devPassword))
     {
-        var devUser = new IdentityUser { UserName = "admin", Email = "admin@myapp.local" };
-        await userManager.CreateAsync(devUser, "Admin123!");
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        if (await userManager.FindByNameAsync(devUsername) is null)
+        {
+            var devUser = new IdentityUser { UserName = devUsername, Email = $"{devUsername}@myapp.local" };
+            await userManager.CreateAsync(devUser, devPassword);
+        }
     }
 }
 
@@ -390,13 +437,26 @@ Three layout options are available. Use the one matching the user's choice from 
 
     <!-- Main Content -->
     <main class="sidebar-content min-h-screen">
-        <header class="border-b border-gray-300 dark:border-gray-700 px-6 py-4">
+        <header class="border-b border-border px-6 py-4">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold" data-text="$currentPage">@ViewData["Title"]</h2>
+                <div class="flex items-center gap-3">
+                    <button type="button"
+                            class="btn btn-outline btn-sm text-foreground"
+                            data-on-click__passive="document.dispatchEvent(new CustomEvent('basecoat:sidebar')); $sidebarCollapsed = !$sidebarCollapsed"
+                            aria-label="Toggle sidebar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" x2="20" y1="6" y2="6" />
+                            <line x1="4" x2="20" y1="12" y2="12" />
+                            <line x1="4" x2="20" y1="18" y2="18" />
+                        </svg>
+                    </button>
+                    <h2 class="text-lg font-semibold" data-text="$currentPage">@ViewData["Title"]</h2>
+                </div>
                 <div class="flex items-center gap-3">
                     <!-- Dark mode toggle -->
                     <button type="button"
-                            class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                            class="btn btn-outline btn-sm text-foreground"
                             data-on-click="
                                 $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
                                 document.documentElement.classList.toggle('dark');
@@ -406,7 +466,7 @@ Three layout options are available. Use the one matching the user's choice from 
                         <svg data-show="$themeMode === 'dark'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
                     </button>
                     <!-- Profile link -->
-                    <a href="/Auth/Profile" class="btn btn-ghost btn-sm text-muted-foreground hover:text-foreground">
+                    <a href="/Auth/Profile" class="btn btn-ghost btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         <span data-text="$user.name">@(User.Identity?.Name ?? "Guest")</span>
                     </a>
@@ -418,7 +478,7 @@ Three layout options are available. Use the one matching the user's choice from 
             @RenderBody()
         </div>
 
-        <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <footer class="border-t border-border px-6 py-4 text-center text-sm text-muted-foreground">
             &copy; @DateTime.Now.Year MyApp
         </footer>
     </main>
@@ -477,7 +537,7 @@ Horizontal navigation bar — no sidebar. Full-width content area. Best for apps
     }">
 
     <!-- Top Navigation Bar -->
-    <nav class="border-b border-gray-300 dark:border-gray-700 bg-background">
+    <nav class="border-b border-border bg-background">
         <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <!-- Left: Brand + Nav Links -->
             <div class="flex items-center gap-6">
@@ -493,7 +553,7 @@ Horizontal navigation bar — no sidebar. Full-width content area. Best for apps
             <!-- Right: Dark mode + Profile -->
             <div class="flex items-center gap-3">
                 <button type="button"
-                        class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                        class="btn btn-outline btn-sm text-foreground"
                         data-on-click="
                             $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
                             document.documentElement.classList.toggle('dark');
@@ -516,7 +576,7 @@ Horizontal navigation bar — no sidebar. Full-width content area. Best for apps
             @RenderBody()
         </div>
 
-        <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <footer class="border-t border-border px-6 py-4 text-center text-sm text-muted-foreground">
             &copy; @DateTime.Now.Year MyApp
         </footer>
     </main>
@@ -584,13 +644,13 @@ Minimal chrome — just a header strip with app name, dark mode toggle, and prof
     class="min-h-screen flex flex-col">
 
     <!-- Minimal Header -->
-    <header class="border-b border-gray-300 dark:border-gray-700 bg-background">
+    <header class="border-b border-border bg-background">
         <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <a href="/" class="text-xl font-bold text-foreground">MyApp</a>
             <div class="flex items-center gap-3">
                 <!-- Dark mode toggle -->
                 <button type="button"
-                        class="btn btn-outline btn-sm text-black dark:text-gray-300"
+                        class="btn btn-outline btn-sm text-foreground"
                         data-on-click="
                             $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
                             document.documentElement.classList.toggle('dark');
@@ -615,7 +675,7 @@ Minimal chrome — just a header strip with app name, dark mode toggle, and prof
         </div>
     </main>
 
-    <footer class="border-t border-gray-300 dark:border-gray-700 px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+    <footer class="border-t border-border px-6 py-4 text-center text-sm text-muted-foreground">
         &copy; @DateTime.Now.Year MyApp
     </footer>
 
@@ -649,11 +709,10 @@ tbd..
 
 ## appsettings.json
 
+Contains **non-secret configuration only**. The connection string and dev seed credentials are loaded from `appsettings.Local.json` (gitignored, generated by the startup script from `.env`).
+
 ```json
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=myapp;Username=myapp;Password=myapp_dev_password"
-  },
   "RunMigrations": true,
   "Logging": {
     "LogLevel": {
@@ -664,6 +723,29 @@ tbd..
   },
   "AllowedHosts": "*"
 }
+```
+
+### appsettings.Local.json (generated, gitignored)
+
+The startup script (`scripts/start-dev-environment.ps1`) reads `.env` and generates this file automatically. It is gitignored and should never be committed:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=<from .env>;Username=<from .env>;Password=<from .env>"
+  },
+  "DevSeed": {
+    "Username": "<from .env DEV_ADMIN_USERNAME>",
+    "Password": "<from .env DEV_ADMIN_PASSWORD>"
+  }
+}
+```
+
+To load this file, add to `Program.cs` before `builder.Build()`:
+
+```csharp
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
+```
 ```
 
 ## appsettings.Development.json

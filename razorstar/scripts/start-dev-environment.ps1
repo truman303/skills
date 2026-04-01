@@ -12,6 +12,36 @@ $ErrorActionPreference = "Stop"
 Write-Host "Starting MyApp Development Environment..." -ForegroundColor Green
 Write-Host ""
 
+# Resolve paths
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$solutionRoot = Split-Path -Parent $projectRoot
+$envFile = Join-Path $solutionRoot ".env"
+
+# Check .env file exists
+if (-not (Test-Path $envFile)) {
+    Write-Error "[ERROR] .env file not found at $envFile. Create it with POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEV_ADMIN_USERNAME, and DEV_ADMIN_PASSWORD."
+    exit 1
+}
+Write-Host "[OK] .env file found" -ForegroundColor Green
+
+# Parse .env file into a hashtable
+$envVars = @{}
+Get-Content $envFile | ForEach-Object {
+    if ($_ -match '^\s*([^#\s][^=]*)=(.*)$') {
+        $envVars[$matches[1].Trim()] = $matches[2].Trim()
+    }
+}
+
+# Validate required variables
+$requiredVars = @("POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "DEV_ADMIN_USERNAME", "DEV_ADMIN_PASSWORD")
+foreach ($var in $requiredVars) {
+    if (-not $envVars.ContainsKey($var) -or [string]::IsNullOrWhiteSpace($envVars[$var])) {
+        Write-Error "[ERROR] Required variable '$var' is missing or empty in .env file."
+        exit 1
+    }
+}
+Write-Host "[OK] All required .env variables present" -ForegroundColor Green
+
 # Check if Docker is running
 try {
     docker --version | Out-Null
@@ -30,9 +60,8 @@ try {
     exit 1
 }
 
-# Navigate to project root
-$projectRoot = Split-Path -Parent $PSScriptRoot
-Set-Location $projectRoot
+# Navigate to solution root (where docker-compose.yml lives)
+Set-Location $solutionRoot
 
 # Stop existing containers if Force is specified
 if ($Force) {
@@ -74,12 +103,28 @@ if ($attempt -eq $maxAttempts) {
     exit 1
 }
 
+# Generate appsettings.Local.json from .env values
+Write-Host "[INFO] Generating appsettings.Local.json from .env..." -ForegroundColor Blue
+$connStr = "Host=localhost;Port=5432;Database=$($envVars['POSTGRES_DB']);Username=$($envVars['POSTGRES_USER']);Password=$($envVars['POSTGRES_PASSWORD'])"
+$localSettings = @{
+    ConnectionStrings = @{
+        DefaultConnection = $connStr
+    }
+    DevSeed = @{
+        Username = $envVars['DEV_ADMIN_USERNAME']
+        Password = $envVars['DEV_ADMIN_PASSWORD']
+    }
+}
+$localSettingsPath = Join-Path $projectRoot "appsettings.Local.json"
+$localSettings | ConvertTo-Json -Depth 3 | Set-Content -Path $localSettingsPath -Encoding UTF8
+Write-Host "[OK] appsettings.Local.json generated" -ForegroundColor Green
+
 Write-Host ""
 Write-Host "[SUCCESS] Development environment started!" -ForegroundColor Green
 Write-Host ""
 Write-Host "[INFO] Next steps:" -ForegroundColor Blue
 Write-Host "  - Run the app:     dotnet run --project MyApp" -ForegroundColor White
-Write-Host "  - Login:           admin / Admin123!" -ForegroundColor White
+Write-Host "  - Login:           See .env file for DEV_ADMIN_USERNAME / DEV_ADMIN_PASSWORD" -ForegroundColor White
 Write-Host ""
 Write-Host "[INFO] Useful commands:" -ForegroundColor Blue
 Write-Host "  - View logs:       docker compose logs -f" -ForegroundColor White

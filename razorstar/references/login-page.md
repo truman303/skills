@@ -4,6 +4,7 @@ The login page uses a separate **landing layout** (no sidebar) with a centered c
 
 ## Table of Contents
 
+- [What the User Sees](#what-the-user-sees)
 - [File Checklist](#file-checklist)
 - [_LandingLayout.cshtml](#_landinglayoutcshtml)
 - [landing.css](#landingcss)
@@ -14,6 +15,20 @@ The login page uses a separate **landing layout** (no sidebar) with a centered c
 - [AppDbContext Update](#appdbcontext-update)
 - [Pages/Index.cshtml.cs (Root Redirect)](#pagesindexcshtmlcs-root-redirect)
 - [Dev Seed: Create a Test User](#dev-seed-create-a-test-user)
+
+## What the User Sees
+
+**Login page** (`/Auth/Login` — unauthenticated users are redirected here automatically):
+- A centered card over a background (gradient or image) with frosted-glass styling
+- The app logo and name at the top
+- Username and password fields with icons
+- A "Log In" button with loading spinner on click
+
+**After logging in with the dev credentials from `.env`:**
+- **Dashboard** (`/Dashboard/Index`) — a welcome message ("Welcome back, admin"), a summary card grid (empty counts initially since no features have data yet), and a Quick Actions section
+- **Header** showing the current page title, a **dark mode toggle**, and a **profile link** with the username
+- **Navigation** matching the chosen layout (sidebar, top nav, or creative)
+- **Footer** with copyright
 
 ## File Checklist
 
@@ -239,7 +254,7 @@ public class LoginModel : PageModel
 
 <!-- App Title -->
 <div class="text-center mb-6">
-    <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100 leading-tight">
+    <h1 class="text-xl font-bold text-foreground leading-tight">
         MyApp
     </h1>
 </div>
@@ -247,7 +262,7 @@ public class LoginModel : PageModel
 <!-- User Avatar -->
 <div class="text-center mb-6">
     <div class="w-24 h-24 mx-auto rounded-full bg-gray-200 dark:bg-gray-600 border-2 border-white/30 dark:border-white/20 opacity-80 flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600 dark:text-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
         </svg>
@@ -303,7 +318,7 @@ public class LoginModel : PageModel
          data-show="$login.loading" style="display: none;">
         <div class="flex items-center space-x-2">
             <span class="loading loading-spinner loading-md"></span>
-            <span class="text-sm text-gray-600 dark:text-gray-300">Signing you in...</span>
+            <span class="text-sm text-muted-foreground">Signing you in...</span>
         </div>
     </div>
 
@@ -311,7 +326,7 @@ public class LoginModel : PageModel
     <div class="space-y-1">
         <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                     <circle cx="12" cy="7" r="4"/>
                 </svg>
@@ -330,7 +345,7 @@ public class LoginModel : PageModel
     <div class="space-y-1">
         <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
@@ -345,11 +360,11 @@ public class LoginModel : PageModel
             <button type="button"
                     class="absolute inset-y-0 right-0 pr-3 flex items-center"
                     data-on-click="$login.showPassword = !$login.showPassword; el.parentElement.querySelector('input').type = $login.showPassword ? 'text' : 'password'">
-                <svg data-show="!$login.showPassword" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg data-show="!$login.showPassword" class="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                <svg data-show="$login.showPassword" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                <svg data-show="$login.showPassword" class="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                 </svg>
             </button>
@@ -463,21 +478,25 @@ With a minimal `Pages/Index.cshtml`:
 
 ## Dev Seed: Create a Test User
 
-For development, seed a default user on startup. Add to `Program.cs` after `app` is built:
+For development, seed a default user on startup using credentials from configuration. Add to `Program.cs` after `app` is built:
 
 ```csharp
-// Seed dev user (development only)
+// Seed dev user from configuration (development only)
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    var devUser = await userManager.FindByNameAsync("admin");
-    if (devUser is null)
+    var devUsername = app.Configuration["DevSeed:Username"];
+    var devPassword = app.Configuration["DevSeed:Password"];
+    if (!string.IsNullOrEmpty(devUsername) && !string.IsNullOrEmpty(devPassword))
     {
-        devUser = new IdentityUser { UserName = "admin", Email = "admin@myapp.local" };
-        await userManager.CreateAsync(devUser, "Admin123!");
+        using var scope = app.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        if (await userManager.FindByNameAsync(devUsername) is null)
+        {
+            var devUser = new IdentityUser { UserName = devUsername, Email = $"{devUsername}@myapp.local" };
+            await userManager.CreateAsync(devUser, devPassword);
+        }
     }
 }
 ```
 
-This gives you a working login out of the box with `admin` / `Admin123!`.
+The `DevSeed:Username` and `DevSeed:Password` values come from `appsettings.Local.json`, which is generated by the startup script from the `.env` file. This avoids hardcoding credentials in source code.

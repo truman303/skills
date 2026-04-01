@@ -118,7 +118,7 @@ public record MessageViewModel(
         </div>
         @if (Model.ContainerId is not null)
         {
-            <button type="button" class="text-gray-400 hover:text-gray-600"
+            <button type="button" class="text-muted-foreground hover:text-foreground"
                     onclick="this.closest('[class*=rounded-lg]').remove()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
@@ -146,7 +146,7 @@ public record MessageViewModel(
                 <p class="text-sm mt-1">@Model.Message</p>
             }
         </div>
-        <button type="button" class="text-gray-400 hover:text-gray-600"
+        <button type="button" class="text-muted-foreground hover:text-foreground"
                 onclick="this.closest('.toast').remove()">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
