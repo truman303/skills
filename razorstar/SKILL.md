@@ -7,8 +7,6 @@ description: Build a web application using ASP.NET Razor Pages, EF Core with a P
 
 A RazorStar app is an ASP.NET Core Razor Pages web application enhanced with **Datastar** for UI reactivity and **Basecoat UI** for component styling. Server-rendered by default, with SSE-powered real-time updates where needed.
 
-> **Important:** The skill is highly opinionated and assumes the user is building acccording to the general templates in the references folder. If the user wants to build something that is not a CRUD app, or something that is not a server-side rendered web application, or something that is not a RazorStar app, then the skill is not appropriate and you should not use it.
-
 This skill guides you through a **conversational workflow** — not just what to build, but how to work with the user through each phase. Follow the phases in order and don't skip the checkpoints.
 
 ## Table of Contents
@@ -24,7 +22,6 @@ This skill guides you through a **conversational workflow** — not just what to
 - [The Separation Rule](#the-separation-rule)
 - [Name Substitution Reference](#name-substitution-reference)
 - [Additional References](#additional-references)
-- [Gotchas](#gotchas)
 
 ## Tech Stack
 
@@ -70,7 +67,8 @@ Derive all naming variants from their answer:
 |---|---|---|
 | `MyApp` | PascalCase — project, namespaces, class prefixes, `<title>`, sidebar | `InventoryTracker` |
 | `myapp` | lowercase — Docker service/container, Postgres DB/user, network | `inventorytracker` |
-| `myapp_dev_password` | lowercase + `_dev_password` — dev Postgres password | `inventorytracker_dev_password` |
+
+Credentials (database password, dev user password) are **never hardcoded** in source files. They live in a `.env` file that is gitignored — see [Step 2](#step-2-create-env-file-and-set-up-docker-postgresql) for details.
 
 ### 1B. Ask About the First Feature
 
@@ -95,13 +93,7 @@ Before scaffolding, advise the user to review and replace the default images and
 >
 > *Would you like to customise these now, or go with the defaults and tweak later?"*
 
-**How to paste a tweakcn theme into `theme.css`:**
-
-1. Open [tweakcn.com/editor/theme](https://tweakcn.com/editor/theme), design your theme, then click **Code**.
-2. In `theme.css`, replace the `:root { ... }` block with the tweakcn light-mode output, and the `.dark { ... }` block with the dark-mode output.
-3. **Rename** `--sidebar-background` to `--sidebar` in both blocks (tweakcn uses a different name; Basecoat expects `--sidebar`).
-4. **Do NOT** paste the `@theme inline` color mappings from tweakcn — `basecoat.css` already registers those. The `@theme inline` block at the bottom of `theme.css` only covers fonts, shadows, and tracking that Basecoat does not handle.
-5. Both `oklch()` and hex colour values work fine — no conversion needed.
+For step-by-step instructions on pasting a tweakcn theme, see [theme-customization.md](references/theme-customization.md).
 
 ### 1D. Choose Navigation Layout
 
@@ -121,8 +113,8 @@ Before writing code, summarize what you'll build and get a thumbs-up:
 
 > *"Here's what I'll set up for **InventoryTracker**:*
 > 1. *ASP.NET Razor Pages project with Datastar + Basecoat UI*
-> 2. *PostgreSQL via Docker*
-> 3. *Login page with dev credentials (admin / Admin123!)*
+> 2. *PostgreSQL via Docker (credentials in `.env` file, gitignored)*
+> 3. *Login page with a seeded dev user (credentials in `.env`)*
 > 4. *Dashboard with a summary card*
 > 5. *Full CRUD for **Products** (Name, Price, IsActive) — Index table with search & pagination, Create, Edit, and Details pages*
 > 6. *Navigation: **Sidebar** layout* *(or Top Nav / Creative — per your choice)*
@@ -161,9 +153,35 @@ dotnet add package Serilog.Sinks.OpenTelemetry
 
 For complete package list with versions, see [project-scaffolding.md](references/project-scaffolding.md).
 
-### Step 2: Set Up Docker (PostgreSQL)
+### Step 2: Create `.env` File and Set Up Docker (PostgreSQL)
 
-Create `docker-compose.yml` in the **solution root** (parent of the project folder) with a PostgreSQL 15 Alpine service, health check, and named network. Add `db/` to `.gitignore`.
+#### 2a. Create the `.env` file
+
+Create a `.env` file in the **solution root** (parent of the project folder). This is the **single source of truth** for all development credentials — no secret values are hardcoded anywhere else.
+
+Generate a secure dev user password that meets ASP.NET Identity requirements (at least 6 characters, with uppercase, lowercase, digit, and non-alphanumeric character). Use the `{lowercase}` naming convention for database values.
+
+```
+# Dev environment credentials — DO NOT commit (gitignored)
+POSTGRES_DB=myapp
+POSTGRES_USER=myapp
+POSTGRES_PASSWORD=<generate-a-secure-password>
+DEV_ADMIN_USERNAME=admin
+DEV_ADMIN_PASSWORD=<generate-a-secure-password>
+```
+
+Add both `.env` and `db/` to `.gitignore`:
+```
+# Dev credentials
+.env
+
+# PostgreSQL local data
+db/
+```
+
+#### 2b. Create `docker-compose.yml`
+
+Create in the **solution root** with a PostgreSQL 15 Alpine service that reads credentials from `.env` via variable interpolation. Add health check and named network.
 
 For the complete docker-compose template and placeholder substitution table, see [docker-setup.md](references/docker-setup.md).
 
@@ -174,106 +192,50 @@ docker compose up -d
 docker compose ps
 ```
 
-Also copy the bundled `scripts/start-dev-environment.ps1` from this skill's `scripts/` folder into the project's `scripts/` folder. Replace `MyApp`/`myapp-db` placeholders with the user's app name. This gives the user a one-command dev startup that checks Docker, starts containers, waits for health, and prints login credentials. See [project-scaffolding.md](references/project-scaffolding.md) for placeholder details.
+#### 2c. Copy the dev startup script
 
-The matching connection string in `appsettings.json`:
+Copy the bundled `scripts/start-dev-environment.ps1` from this skill's `scripts/` folder into the project's `scripts/` folder. Replace `MyApp`/`myapp-db` placeholders with the user's app name. This gives the user a one-command dev startup that checks Docker, starts containers, waits for health, and generates `appsettings.Local.json` from `.env` values. See [project-scaffolding.md](references/project-scaffolding.md) for placeholder details.
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=myapp;Username=myapp;Password=myapp_dev_password"
-  }
-}
-```
+#### 2d. Configure appsettings
+
+`appsettings.json` contains non-secret configuration only. The connection string and dev seed credentials are loaded at runtime from `appsettings.Local.json`, which is generated by the startup script from `.env` values and is gitignored.
 
 For complete Docker and appsettings configuration, see [project-scaffolding.md](references/project-scaffolding.md).
 
 ### Step 3: Set Up Static Assets
 
-Copy bundled assets from the skill's `assets/` folder into the project's `wwwroot/`:
+Copy bundled assets from the skill's `assets/` folder into the project's `wwwroot/` — CSS (basecoat, tailwind, theme, landing), JS (basecoat, datastar, site), fonts, and images.
 
-```
-wwwroot/
-├── css/
-│   ├── basecoat.css           # Basecoat component styles
-│   ├── landing.css            # Login/landing page styles
-│   ├── site.css               # Entry point (imports tailwind, basecoat, theme)
-│   ├── tailwind-output.css    # Generated by Tailwind CLI (copy initial version)
-│   └── theme.css              # CSS variables for theming
-├── js/
-│   ├── basecoat.all.min.js    # Basecoat component JS
-│   ├── datastar.js            # Datastar library
-│   └── site.js                # App-specific JS (usually minimal)
-├── fonts/                     # Local fonts for air-gapped use
-│   ├── barlow/barlow-v13-latin-regular.woff2
-│   ├── poppins/poppins-v24-latin-regular.woff2
-│   ├── lora/lora-v37-latin-regular.woff2
-│   └── fira-code/fira-code-v27-latin-regular.woff2
-└── images/
-    └── logo.webp
-```
-
-For the complete `site.css`, `theme.css`, and Tailwind CLI setup, see [project-scaffolding.md](references/project-scaffolding.md).
+For the complete directory structure, `site.css`, `theme.css`, and Tailwind CLI setup, see [project-scaffolding.md](references/project-scaffolding.md).
 
 ### Step 4: Configure Shared Infrastructure
 
-Create the shared foundation classes under `Features/Shared/` and `Shared/`:
+Create the shared foundation classes under `Features/Shared/` and `Shared/`. For the complete file layout, see [shared-infrastructure.md](references/shared-infrastructure.md), which links to:
 
-```
-Features/
-└── Shared/
-    ├── Database/
-    │   ├── AppDbContext.cs
-    │   ├── IUnitOfWork.cs
-    │   └── UnitOfWork.cs
-    ├── Exceptions/
-    │   └── GlobalExceptionHandlerMiddleware.cs
-    ├── Extensions/
-    │   └── RazorPageExtensions.cs
-    └── Models/
-        ├── Entity.cs
-        ├── AggregateRoot.cs
-        ├── ValueObject.cs
-        ├── IDomainEvent.cs
-        └── IHasDomainEvents.cs
-
-Shared/
-├── Clocks/
-│   └── IClock.cs
-├── Errors/
-│   ├── ErrorDetail.cs
-│   └── ErrorOrExtensions.cs
-├── Messages/
-│   └── MessageViewModel.cs
-└── Toasts/
-    ├── ToastModel.cs
-    ├── ToastViewModel.cs
-    └── ToasterConfiguration.cs
-
-Pages/Shared/
-├── _Message.cshtml
-└── _Toast.cshtml
-```
-
-For complete implementations, see:
 - [shared-domain.md](references/shared-domain.md) — Base classes, AppDbContext, IClock, Feature DI pattern
 - [shared-control-flow.md](references/shared-control-flow.md) — ErrorOr, RazorPageExtensions, GlobalExceptionHandler, UnitOfWork
 - [shared-toasts-notifications.md](references/shared-toasts-notifications.md) — Toast/Message models, partials
-- [shared-infrastructure.md](references/shared-infrastructure.md) — File layout overview + links
 
 ### Step 5: Configure Program.cs
 
-`Program.cs` registers Datastar, MediatR, EF Core + PostgreSQL, Identity with cookie auth (redirecting to `/Auth/Login`), and Razor Pages with folder-level authorization. In development, it auto-migrates the database and seeds a dev user (**admin** / **Admin123!**).
+`Program.cs` registers Datastar, MediatR, EF Core + PostgreSQL, Identity with cookie auth (redirecting to `/Auth/Login`), and Razor Pages with folder-level authorization. In development, it auto-migrates the database and seeds a dev user using credentials from `IConfiguration` (populated from `appsettings.Local.json`, which is generated from `.env` — never hardcoded).
 
 For the complete `Program.cs` template, middleware pipeline order, and per-feature DI registration pattern, see [program-cs.md](references/program-cs.md).
 
-### Step 6: Set Up Layout and View Imports
+### Step 6: Set Up Layout, View Imports and ViewStart
 
 **`Pages/_ViewImports.cshtml`:**
 ```html
 @using MyApp
 @namespace MyApp.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+```
+
+**`Pages/_ViewStart.cshtml`:**
+```html
+@{
+    Layout = "_Layout";
+}
 ```
 
 **`_Layout.cshtml`** — use the template matching the user's layout choice from Phase 1 Step 1D:
@@ -318,28 +280,7 @@ For complete implementations, see [dashboard-page.md](references/dashboard-page.
 
 **This is a checkpoint. Do not proceed to building features until the user has confirmed the app runs.**
 
-### Post-Scaffolding Checklist
-
-Present these numbered steps to the user. They must complete them in order:
-
-| # | Step | Command | Notes |
-|---|------|---------|-------|
-| 1 | Start dev environment | `.\scripts\start-dev-environment.ps1` | Checks Docker, starts Postgres, waits for health |
-| 2 | Create initial migration | `dotnet ef migrations add InitialCreate` | Must exist before first run |
-| 3 | Run the app | `dotnet run` | Auto-applies migration, seeds dev user |
-| 4 | Open the URL | From console output (e.g., `https://localhost:5001`) | |
-| 5 | Log in | **admin** / **Admin123!** | Lands on Dashboard |
-
-Optional: For ongoing CSS development, run the Tailwind watcher in a second terminal:
-```powershell
-./tailwindcss -i wwwroot/css/site.css -o wwwroot/css/tailwind-output.css --watch
-```
-
-(The initial `tailwind-output.css` was copied from assets, so this is only needed when modifying styles.)
-
-### Tell the user what to expect
-
-After scaffolding, present the checklist:
+After scaffolding, present the startup steps:
 
 > *"The boilerplate is ready. Here's how to run it:*
 >
@@ -347,23 +288,13 @@ After scaffolding, present the checklist:
 > 2. *Create the initial migration: `dotnet ef migrations add InitialCreate`*
 > 3. *Run the app: `dotnet run`*
 > 4. *Open the URL from the console output*
-> 5. *Sign in with **admin** / **Admin123!***
+> 5. *Sign in with the credentials from your `.env` file (`DEV_ADMIN_USERNAME` / `DEV_ADMIN_PASSWORD`)*
 >
 > *Let me know when you're in and I'll start building the [Entity] feature."*
 
-### What the user sees
+Optional: For ongoing CSS development, run the Tailwind watcher in a second terminal (`./tailwindcss -i wwwroot/css/site.css -o wwwroot/css/tailwind-output.css --watch`). The initial `tailwind-output.css` was copied from assets, so this is only needed when modifying styles.
 
-**Login page** (`/Auth/Login` — unauthenticated users are redirected here automatically):
-- A centered card over a background (gradient or image) with frosted-glass styling
-- The app logo and name at the top
-- Username and password fields with icons
-- A "Log In" button with loading spinner on click
-
-**After logging in with admin / Admin123!:**
-- **Dashboard** (`/Dashboard/Index`) — a welcome message ("Welcome back, admin"), a summary card grid (empty counts initially since no features have data yet), and a Quick Actions section
-- **Header** showing the current page title, a **dark mode toggle**, and a **profile link** with the username
-- **Navigation** matching the chosen layout (sidebar, top nav, or creative)
-- **Footer** with copyright
+The user should see the login page (centered frosted-glass card), then after logging in, the Dashboard with summary cards and navigation matching their layout choice. For visual details, see [login-page.md](references/login-page.md) and [dashboard-page.md](references/dashboard-page.md).
 
 Wait for the user to confirm the app runs before proceeding.
 
@@ -465,18 +396,7 @@ The backend should drive the frontend. Try not to manage too much state on the f
 
 ## Name Substitution Reference
 
-All reference files use `MyApp` (PascalCase) and `myapp` (lowercase) as placeholders. Substitute everywhere:
-
-| File / Context | What to replace |
-|---|---|
-| `dotnet new webapp -n MyApp` | Project name |
-| `docker-compose.yml` | Service name, container name, POSTGRES_DB, POSTGRES_USER, password, healthcheck, network |
-| `appsettings.json` | Connection string (Database, Username, Password) |
-| `_Layout.cshtml` | `<title>`, sidebar `<h1>`, footer `&copy;` |
-| `_ViewImports.cshtml` | `@using MyApp`, `@namespace MyApp.Pages` |
-| All `namespace` / `using` declarations | `MyApp.Shared.*`, `MyApp.Features.*`, `MyApp.Pages.*` |
-| `Program.cs` | Implicit via namespace |
-| `.csproj` | Project file name |
+All reference files use `MyApp` (PascalCase) and `myapp` (lowercase) as placeholders. Substitute everywhere — project files, namespaces, Docker services, database names, page titles, sidebar heading. For the complete substitution table, see [project-scaffolding.md](references/project-scaffolding.md#name-substitution).
 
 ## Additional References
 

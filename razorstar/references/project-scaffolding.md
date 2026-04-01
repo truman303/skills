@@ -1,6 +1,6 @@
 # Project Scaffolding Reference
 
-> **Placeholder convention:** `MyApp` (PascalCase) and `myapp` (lowercase) are placeholders throughout this file. Replace with the user's chosen app name. See the "Before You Begin" section in [SKILL.md](../SKILL.md) for the full substitution table.
+> **Placeholder convention:** `MyApp` (PascalCase) and `myapp` (lowercase) are placeholders throughout this file. Replace with the user's chosen app name. See the [Name Substitution](#name-substitution) section below for the full table.
 
 ## Table of Contents
 
@@ -16,6 +16,22 @@
 - [appsettings.json](#appsettingsjson)
 - [appsettings.Development.json](#appsettingsdevelopmentjson)
 
+## Name Substitution
+
+All reference files use `MyApp` (PascalCase) and `myapp` (lowercase) as placeholders. Substitute everywhere:
+
+| File / Context | What to replace |
+|---|---|
+| `dotnet new webapp -n MyApp` | Project name |
+| `docker-compose.yml` | Service name, container name, network (credentials come from `.env` via `${VAR}` interpolation) |
+| `.env` | POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DEV_ADMIN_USERNAME, DEV_ADMIN_PASSWORD |
+| `appsettings.json` | Non-secret config only; secrets load from `appsettings.Local.json` (generated from `.env`) |
+| `_Layout.cshtml` | `<title>`, sidebar `<h1>`, footer `&copy;` |
+| `_ViewImports.cshtml` | `@using MyApp`, `@namespace MyApp.Pages` |
+| All `namespace` / `using` declarations | `MyApp.Shared.*`, `MyApp.Features.*`, `MyApp.Pages.*` |
+| `Program.cs` | Implicit via namespace |
+| `.csproj` | Project file name |
+
 ## Create Project
 
 ```powershell
@@ -25,7 +41,24 @@ cd MyApp
 
 ## Docker Setup (PostgreSQL)
 
-Create `docker-compose.yml` in the **solution root** (parent of the project folder):
+### `.env` file (solution root)
+
+Create a `.env` file in the solution root. This is the single source of truth for all dev credentials. Generate secure passwords — do not use well-known defaults.
+
+```
+# Dev environment credentials — DO NOT commit (gitignored)
+POSTGRES_DB=myapp
+POSTGRES_USER=myapp
+POSTGRES_PASSWORD=<generate-a-secure-password>
+DEV_ADMIN_USERNAME=admin
+DEV_ADMIN_PASSWORD=<generate-a-secure-password>
+```
+
+Replace `myapp` with the user's lowercase app name. Generate passwords that meet ASP.NET Identity requirements (at least 6 characters, with uppercase, lowercase, digit, and non-alphanumeric character).
+
+### `docker-compose.yml` (solution root)
+
+Credentials are injected from `.env` via `${VAR}` interpolation — no secrets in this file:
 
 ```yaml
 services:
@@ -34,16 +67,16 @@ services:
     container_name: myapp-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: myapp
-      POSTGRES_USER: myapp
-      POSTGRES_PASSWORD: myapp_dev_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - ./db/data/postgresql:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myapp -d myapp"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,9 +100,15 @@ docker compose up -d
 docker compose ps
 ```
 
-Add `db/` to `.gitignore` so local Postgres data isn't committed:
+### `.gitignore` entries
 
 ```
+# Dev credentials
+.env
+
+# Local appsettings with secrets (generated from .env)
+appsettings.Local.json
+
 # PostgreSQL local data
 db/
 ```
@@ -82,7 +121,7 @@ Copy the bundled script from the skill's `scripts/` folder into the project's `s
 scripts/start-dev-environment.ps1   ← copy from skill's scripts/start-dev-environment.ps1
 ```
 
-The script validates Docker, starts the database container, polls the health check until healthy, and prints next steps (including login credentials). It gives the user a one-command dev environment startup.
+The script validates Docker, starts the database container, polls the health check until healthy, generates `appsettings.Local.json` from `.env` values, and prints next steps. It gives the user a one-command dev environment startup.
 
 **After copying, replace placeholders:**
 - `MyApp` → PascalCase app name (in the "Next steps" output and banner)
@@ -238,6 +277,9 @@ using StarFederation.Datastar.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load local secrets (generated from .env by start-dev-environment.ps1)
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
+
 // Datastar for SSE-powered UI updates
 builder.Services.AddDatastar();
 
@@ -289,12 +331,17 @@ if (app.Environment.IsDevelopment())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    // Seed dev user
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    if (await userManager.FindByNameAsync("admin") is null)
+    // Seed dev user from configuration (populated by appsettings.Local.json, generated from .env)
+    var devUsername = app.Configuration["DevSeed:Username"];
+    var devPassword = app.Configuration["DevSeed:Password"];
+    if (!string.IsNullOrEmpty(devUsername) && !string.IsNullOrEmpty(devPassword))
     {
-        var devUser = new IdentityUser { UserName = "admin", Email = "admin@myapp.local" };
-        await userManager.CreateAsync(devUser, "Admin123!");
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        if (await userManager.FindByNameAsync(devUsername) is null)
+        {
+            var devUser = new IdentityUser { UserName = devUsername, Email = $"{devUsername}@myapp.local" };
+            await userManager.CreateAsync(devUser, devPassword);
+        }
     }
 }
 
@@ -662,11 +709,10 @@ tbd..
 
 ## appsettings.json
 
+Contains **non-secret configuration only**. The connection string and dev seed credentials are loaded from `appsettings.Local.json` (gitignored, generated by the startup script from `.env`).
+
 ```json
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=myapp;Username=myapp;Password=myapp_dev_password"
-  },
   "RunMigrations": true,
   "Logging": {
     "LogLevel": {
@@ -677,6 +723,29 @@ tbd..
   },
   "AllowedHosts": "*"
 }
+```
+
+### appsettings.Local.json (generated, gitignored)
+
+The startup script (`scripts/start-dev-environment.ps1`) reads `.env` and generates this file automatically. It is gitignored and should never be committed:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=<from .env>;Username=<from .env>;Password=<from .env>"
+  },
+  "DevSeed": {
+    "Username": "<from .env DEV_ADMIN_USERNAME>",
+    "Password": "<from .env DEV_ADMIN_PASSWORD>"
+  }
+}
+```
+
+To load this file, add to `Program.cs` before `builder.Build()`:
+
+```csharp
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
+```
 ```
 
 ## appsettings.Development.json
