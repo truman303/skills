@@ -4,8 +4,24 @@
 
 ## RazorStar Skill
 
+### Overview
+
 [RazorStar Skill](razorstar/SKILL.md)
 
 Build a web application using ASP.NET Razor Pages, EF Core with a PostgreSQL database, Datastar for UI reactivity real-time updates via SSE, and Basecoat UI components for simplified Tailwind CSS. Useful for building server-side rendered web applications, where offline capabilities are not required.
 
 Use when the user asks to create a razorstar app, set up a new web app with the RazorStar stack, or add features to an existing RazorStar app. Even if the user just says they want to "build a web app" or "create a CRUD app" or "scaffold a project", consider whether the RazorStar stack is appropriate and offer it.
+
+### Prerequisites
+
+- [.NET](https://dotnet.microsoft.com/en-us/download)
+- [Docker](https://www.docker.com/)
+- [Tailwind CLI](https://tailwindcss.com/docs/installation/tailwind-cli)
+
+### Installation
+
+Install with the [skills CLI](https://skills.sh/docs/cli).
+
+```cmd
+npx skills add https://github.com/truman303/skills --skill razorstar
+```
