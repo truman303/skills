@@ -1,0 +1,147 @@
+{
+  "metadata": {
+    "skill_name": "nx-workspace-docker-setup",
+    "skill_path": "/usr/src/app/.agents/skills/nx-workspace-docker-setup",
+    "timestamp": "2026-04-23T00:00:00Z",
+    "evals_run": [1, 2],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "polyglot-crm-from-scratch",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 11,
+        "failed": 0,
+        "total": 11,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Dockerfile installs .NET SDK 8 alongside Node.js", "passed": true, "evidence": "dotnet-sdk-8.0 via Microsoft apt feed"},
+        {"text": "Dockerfile does NOT bake in COPY package*.json + npm install", "passed": true, "evidence": "Explicit comment rationalizing omission"},
+        {"text": "Plan runs create-nx-workspace INSIDE a docker container", "passed": true, "evidence": "docker compose run --rm nx-init npx create-nx-workspace"},
+        {"text": "--preset=angular-monorepo used", "passed": true, "evidence": "Step 2 flags include --preset=angular-monorepo"},
+        {"text": "nx add @nx/dotnet (not npm install)", "passed": true, "evidence": "Step 3 uses nx add with rationale"},
+        {"text": "dotnet new webapi used for sample api", "passed": true, "evidence": "Step 4: dotnet new webapi -o ./apps/pollen-api"},
+        {"text": "nx configure-ai-agents to wire up Claude/MCP", "passed": true, "evidence": "Step 5 runs npx nx configure-ai-agents"},
+        {"text": "Angular serve includes --host 0.0.0.0", "passed": true, "evidence": "nx serve pollen --host 0.0.0.0"},
+        {"text": "CHOKIDAR_USEPOLLING=true in serve compose", "passed": true, "evidence": "Environment block"},
+        {"text": "Port 4200 published to host", "passed": true, "evidence": "ports: - 4200:4200"},
+        {"text": "Does NOT recommend installing Node/.NET on host", "passed": true, "evidence": "Opening and every step wrapped in docker compose"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "polyglot-crm-from-scratch",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.45,
+        "passed": 5,
+        "failed": 6,
+        "total": 11,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Dockerfile installs .NET SDK 8 alongside Node.js", "passed": true, "evidence": "FROM dotnet/sdk:8.0 + NodeSource Node 20"},
+        {"text": "Dockerfile does NOT bake in COPY package*.json + npm install", "passed": true, "evidence": "No COPY/install baked in"},
+        {"text": "Plan runs create-nx-workspace INSIDE a docker container", "passed": false, "evidence": "Used nx init instead of create-nx-workspace"},
+        {"text": "--preset=angular-monorepo used", "passed": false, "evidence": "create-nx-workspace not used"},
+        {"text": "nx add @nx/dotnet (not npm install)", "passed": false, "evidence": "Used @nx-dotnet/core community plugin, not @nx/dotnet"},
+        {"text": "dotnet new webapi used for sample api", "passed": false, "evidence": "Used @nx-dotnet/core:app generator instead"},
+        {"text": "nx configure-ai-agents to wire up Claude/MCP", "passed": false, "evidence": "Hand-wrote CLAUDE.md and .mcp.json instead of running configure-ai-agents"},
+        {"text": "Angular serve includes --host 0.0.0.0", "passed": true, "evidence": "Exec example includes --host 0.0.0.0"},
+        {"text": "CHOKIDAR_USEPOLLING=true in serve compose", "passed": false, "evidence": "Not set in compose environment"},
+        {"text": "Port 4200 published to host", "passed": true, "evidence": "4200:4200"},
+        {"text": "Does NOT recommend installing Node/.NET on host", "passed": true, "evidence": "Explicit 'No Node and no .NET SDK on the host'"}
+      ],
+      "notes": ["Baseline chose the community @nx-dotnet/core plugin over the official @nx/dotnet", "Baseline missed nx configure-ai-agents entirely — hand-rolled Claude config"]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "terse-request",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Recognizes all four (Nx+Angular+.NET+Docker) coherently", "passed": true, "evidence": "All dimensions covered"},
+        {"text": "Single image with Node + .NET SDK", "passed": true, "evidence": "FROM node:20 + dotnet-sdk-8.0"},
+        {"text": "create-nx-workspace with --preset=angular-monorepo", "passed": true, "evidence": "Step 2"},
+        {"text": "nx add @nx/dotnet", "passed": true, "evidence": "Step 3"},
+        {"text": "nx configure-ai-agents", "passed": true, "evidence": "Step 5"},
+        {"text": "Samples for Angular AND .NET scaffolded", "passed": true, "evidence": "Step 2 appName=web, step 4 dotnet new webapi api"},
+        {"text": "AI-agents step not silently skipped", "passed": true, "evidence": "Step 5 dedicated to it"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "terse-request",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.43,
+        "passed": 3,
+        "failed": 4,
+        "total": 7,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Recognizes all four", "passed": true, "evidence": "Covers Nx, Angular, .NET, Docker"},
+        {"text": "Single image with Node + .NET SDK", "passed": true, "evidence": "dotnet/sdk:8.0 + NodeSource"},
+        {"text": "create-nx-workspace with --preset=angular-monorepo", "passed": false, "evidence": "Used --preset=apps (empty preset)"},
+        {"text": "nx add @nx/dotnet", "passed": false, "evidence": "npm install -D @nx-dotnet/core (wrong plugin, wrong method)"},
+        {"text": "nx configure-ai-agents", "passed": false, "evidence": "Not mentioned at all"},
+        {"text": "Samples for Angular AND .NET scaffolded", "passed": true, "evidence": "Both generated"},
+        {"text": "AI-agents step not silently skipped", "passed": false, "evidence": "Completely absent from plan"}
+      ],
+      "notes": ["Baseline used --preset=apps instead of --preset=angular-monorepo", "Baseline dropped AI-agents step entirely — this is the step most commonly skipped without skill guidance"]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0},
+      "time_seconds": {"mean": 0, "stddev": 0, "min": 0, "max": 0},
+      "tokens": {"mean": 0, "stddev": 0, "min": 0, "max": 0}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.44, "stddev": 0.01, "min": 0.43, "max": 0.45},
+      "time_seconds": {"mean": 0, "stddev": 0, "min": 0, "max": 0},
+      "tokens": {"mean": 0, "stddev": 0, "min": 0, "max": 0}
+    },
+    "delta": {
+      "pass_rate": "+0.56",
+      "time_seconds": "0",
+      "tokens": "0"
+    }
+  },
+  "notes": [
+    "The skill drives pass rate from 44% to 100% across both evals — strong lift.",
+    "Biggest recurring miss in baseline: `nx configure-ai-agents` step is dropped entirely when the skill is not present. This was explicitly called out as part of the user's goal.",
+    "Baseline consistently reaches for the community `@nx-dotnet/core` plugin instead of the official `@nx/dotnet` plugin. The skill corrects this by naming the correct package and using `nx add`.",
+    "CHOKIDAR_USEPOLLING=true is easy for the baseline to forget — a silent failure mode (reloads just don't fire on macOS/WSL). The skill's compose asset makes this reliable.",
+    "Timing/tokens not captured on these runs (the subagent tool in this environment did not surface those metrics reliably). Pass-rate delta is the key signal."
+  ]
+}

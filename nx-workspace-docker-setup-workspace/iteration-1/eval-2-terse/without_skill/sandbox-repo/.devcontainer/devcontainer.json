@@ -1,0 +1,18 @@
+{
+  "name": "Nx + Angular + .NET",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [4200, 5000, 5001],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "nrwl.angular-console",
+        "angular.ng-template",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit"
+      ]
+    }
+  },
+  "postCreateCommand": "npm install || true"
+}

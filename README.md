@@ -14,8 +14,8 @@ Use when the user asks to create a razorstar app, set up a new web app with the 
 
 ### Prerequisites
 
-- [.NET](https://dotnet.microsoft.com/en-us/download)
 - [Docker](https://www.docker.com/)
+- [.NET](https://dotnet.microsoft.com/en-us/download)
 - [Tailwind CLI](https://tailwindcss.com/docs/installation/tailwind-cli)
 
 ### Installation

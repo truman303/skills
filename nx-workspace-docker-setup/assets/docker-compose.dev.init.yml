@@ -1,0 +1,37 @@
+# One-off init compose file. Use this to run create-nx-workspace, add plugins,
+# scaffold sample projects, and configure AI agents — all inside the container
+# so the host doesn't need Node or .NET installed.
+#
+# Usage patterns:
+#   docker compose -f docker-compose.dev.init.yml run --rm nx-init bash
+#       -> drops you into a shell in the mounted repo; run nx commands manually
+#   docker compose -f docker-compose.dev.init.yml run --rm nx-init \
+#       npx create-nx-workspace@latest . --preset=angular-monorepo ...
+#       -> runs a single command then exits
+version: '3.8'
+
+services:
+  nx-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount the repo so files created inside the container persist on the host.
+      - .:/usr/src/app
+      # Named-volume overrides so node_modules / dist don't bleed into the host
+      # filesystem (where they'd clobber host-side tooling and slow everything
+      # down via bind-mount I/O).
+      - nx_node_modules:/usr/src/app/node_modules
+      - nx_dist:/usr/src/app/dist
+    working_dir: /usr/src/app
+    # stdin_open + tty so interactive prompts from create-nx-workspace work.
+    stdin_open: true
+    tty: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      # Don't let npx send telemetry prompts to a non-existent TTY during CI-ish runs.
+      - NX_DAEMON=false
+
+volumes:
+  nx_node_modules:
+  nx_dist:

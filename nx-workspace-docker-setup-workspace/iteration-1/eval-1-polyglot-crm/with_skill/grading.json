@@ -1,0 +1,16 @@
+{
+  "expectations": [
+    {"text": "Dockerfile installs .NET SDK 8 (dotnet-sdk-8.0 or equivalent) alongside Node.js", "passed": true, "evidence": "Dockerfile.dev line 20 installs dotnet-sdk-8.0 via Microsoft apt feed, on top of FROM node:20.11.1-bookworm"},
+    {"text": "Dockerfile does NOT bake in COPY package*.json + npm install (would break fresh-workspace init)", "passed": true, "evidence": "Dockerfile.dev lines 30-35 explicitly comment that npm install is NOT done at image build, with rationale; no COPY package.json present"},
+    {"text": "Plan runs create-nx-workspace INSIDE a docker container, not on the host", "passed": true, "evidence": "PLAN.md step 2 uses `docker compose -f docker-compose.dev.init.yml run --rm nx-init npx create-nx-workspace@latest .`"},
+    {"text": "create-nx-workspace invocation uses --preset=angular-monorepo", "passed": true, "evidence": "PLAN.md step 2: `--preset=angular-monorepo` with explicit note that angular-standalone is wrong"},
+    {"text": "Plan runs `nx add @nx/dotnet` (not just `npm install @nx/dotnet`)", "passed": true, "evidence": "PLAN.md step 3 uses `nx add @nx/dotnet` and explicitly contrasts with npm install"},
+    {"text": "Plan creates a sample .NET webapi via `dotnet new webapi` inside the container", "passed": true, "evidence": "PLAN.md step 4: `dotnet new webapi -o ./apps/pollen-api` via the init compose service"},
+    {"text": "Plan runs `nx configure-ai-agents` (or equivalent) to wire up Claude/Nx MCP", "passed": true, "evidence": "PLAN.md step 5 runs `npx nx configure-ai-agents` and explains it generates CLAUDE.md/AGENTS.md and the Nx MCP server"},
+    {"text": "Angular serve command in compose includes --host 0.0.0.0", "passed": true, "evidence": "docker-compose.dev.serve.yml line 24: `command: nx serve pollen --host 0.0.0.0`"},
+    {"text": "CHOKIDAR_USEPOLLING=true is set in serve compose file", "passed": true, "evidence": "docker-compose.dev.serve.yml line 20: `CHOKIDAR_USEPOLLING=true`"},
+    {"text": "Port 4200 is published from serve container to the host", "passed": true, "evidence": "docker-compose.dev.serve.yml lines 16-17: `ports: - \"4200:4200\"`"},
+    {"text": "Assistant does NOT recommend installing Node or .NET SDK on the host", "passed": true, "evidence": "PLAN.md opening: 'All commands run inside Docker — you do not need Node or the .NET SDK on your Mac.' Every step uses `docker compose run` wrapping"}
+  ],
+  "summary": {"passed": 11, "failed": 0, "total": 11, "pass_rate": 1.0}
+}

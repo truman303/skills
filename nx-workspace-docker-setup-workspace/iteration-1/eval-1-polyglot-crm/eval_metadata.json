@@ -1,0 +1,18 @@
+{
+  "eval_id": 1,
+  "eval_name": "polyglot-crm-from-scratch",
+  "prompt": "hey so i'm starting a side project called 'pollen' — it's a small CRM, angular on the frontend and a dotnet webapi on the backend. i'm on a new macbook and dont want to install node or dotnet sdk locally. my repo at ~/code/pollen is empty except for a readme. can you get me to a working nx monorepo where i can run `nx serve` for the angular app and `nx build` for the api, all inside docker? also i'm going to be using claude code a lot in this repo so please set up whatever nx has for ai agents.",
+  "assertions": [
+    "Dockerfile installs .NET SDK 8 (dotnet-sdk-8.0 or equivalent) alongside Node.js",
+    "Dockerfile does NOT bake in COPY package*.json + npm install (would break fresh-workspace init)",
+    "Plan runs create-nx-workspace INSIDE a docker container, not on the host",
+    "create-nx-workspace invocation uses --preset=angular-monorepo",
+    "Plan runs `nx add @nx/dotnet` (not just `npm install @nx/dotnet`)",
+    "Plan creates a sample .NET webapi via `dotnet new webapi` inside the container",
+    "Plan runs `nx configure-ai-agents` (or equivalent) to wire up Claude/Nx MCP",
+    "Angular serve command in compose includes --host 0.0.0.0",
+    "CHOKIDAR_USEPOLLING=true is set in serve compose file",
+    "Port 4200 is published from serve container to the host",
+    "Assistant does NOT recommend installing Node or .NET SDK on the host"
+  ]
+}

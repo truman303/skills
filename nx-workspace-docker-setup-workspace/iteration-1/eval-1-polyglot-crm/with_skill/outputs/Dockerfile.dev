@@ -1,0 +1,42 @@
+# Dev container for an Nx workspace with Angular + .NET.
+#
+# Why this image exists:
+#   Nx's @nx/angular plugin needs Node/npm, and @nx/dotnet needs the .NET SDK
+#   on PATH (it shells out to `dotnet` / MSBuild to infer targets). Putting
+#   both in one image keeps the dev loop simple: one `docker compose up` runs
+#   Angular serve, nx build, and dotnet commands from the same shell.
+#
+# Base: node:20 on Debian bookworm — matches the Microsoft apt feed used below.
+FROM node:20.11.1-bookworm
+
+# Install .NET SDK 8 (LTS). Microsoft's apt repo is the supported path on Debian.
+# See https://learn.microsoft.com/dotnet/core/install/linux-debian
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget ca-certificates \
+    && wget -q https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb \
+    && dpkg -i /tmp/packages-microsoft-prod.deb \
+    && rm /tmp/packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends dotnet-sdk-8.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Nx globally so `nx` works before the workspace's local nx is installed.
+# This matters during the initial `create-nx-workspace` step when there's no
+# local node_modules yet.
+RUN npm install -g nx@latest
+
+WORKDIR /usr/src/app
+
+# NOTE: we deliberately do NOT COPY package.json or run `npm install` here.
+# This image is used for THREE phases:
+#   1. init  — workspace doesn't exist yet (no package.json to copy)
+#   2. build — package.json exists, nx runs a one-off build
+#   3. serve — package.json exists, nx serves with HMR
+# npm install happens at runtime or is handled by create-nx-workspace.
+
+# Angular dev server default port.
+EXPOSE 4200
+
+# Default to a shell so `docker compose run` can drive any nx command; the
+# compose files below override this with explicit nx invocations.
+CMD ["bash"]

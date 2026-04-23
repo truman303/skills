@@ -1,0 +1,12 @@
+{
+  "expectations": [
+    {"text": "Recognizes Nx + Angular + .NET + Docker and produces a coherent plan covering all four", "passed": true, "evidence": "PLAN.md opening 'Nx Monorepo (Angular + .NET) in Docker — Setup Plan' and numbered steps cover all four dimensions"},
+    {"text": "Dockerfile installs both Node and the .NET SDK in a single image", "passed": true, "evidence": "Dockerfile.dev in outputs uses FROM node:20 base + dotnet-sdk-8.0 apt install"},
+    {"text": "Plan includes create-nx-workspace with --preset=angular-monorepo", "passed": true, "evidence": "PLAN.md step 2 uses `create-nx-workspace@latest . --preset=angular-monorepo --appName=web`"},
+    {"text": "Plan includes `nx add @nx/dotnet` for .NET plugin registration", "passed": true, "evidence": "PLAN.md step 3: `nx add @nx/dotnet`"},
+    {"text": "Plan includes `nx configure-ai-agents` step", "passed": true, "evidence": "PLAN.md step 5: `npx nx configure-ai-agents` with explanation"},
+    {"text": "Plan scaffolds a sample Angular app AND a sample .NET project so the workspace is immediately functional", "passed": true, "evidence": "Angular app `web` created via create-nx-workspace appName flag; `api` webapi via `dotnet new webapi -o ./apps/api`"},
+    {"text": "Assistant does not silently skip the AI-agents configuration step", "passed": true, "evidence": "Step 5 dedicated to AI agents, not skipped; the subagent also flagged the assumption it made"}
+  ],
+  "summary": {"passed": 7, "failed": 0, "total": 7, "pass_rate": 1.0}
+}

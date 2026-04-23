@@ -1,0 +1,24 @@
+# One-shot build compose file. Runs `nx build <app>` and exits.
+# Override the app name either by editing `command:` below or by passing it:
+#   docker compose -f docker-compose.dev.build.yml run --rm nx-build nx build my-api
+version: '3.8'
+
+services:
+  nx-build:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/usr/src/app
+      - nx_node_modules:/usr/src/app/node_modules
+      - nx_dist:/usr/src/app/dist
+    working_dir: /usr/src/app
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    # Replace `my-app` with the actual app/project name in your workspace.
+    # For a .NET target this might be `nx build my-api`.
+    command: nx build web
+
+volumes:
+  nx_node_modules:
+  nx_dist:

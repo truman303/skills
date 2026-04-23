@@ -1,0 +1,50 @@
+# Pollen dev stack.
+#
+# The `dev` service is a long-running container that holds the Node + .NET
+# toolchain. The repo at ~/code/pollen is bind-mounted at /workspace/pollen,
+# and node_modules lives on a named volume so macOS virtiofs doesn't tank
+# install performance.
+#
+# Typical usage:
+#   docker compose up -d dev                    # start the toolchain container
+#   docker compose exec dev bash                # shell in
+#   docker compose exec dev npx nx serve web    # run nx from the host
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        NODE_MAJOR: "20"
+    image: pollen-dev:latest
+    container_name: pollen-dev
+    working_dir: /workspace/pollen
+    volumes:
+      - .:/workspace/pollen
+      - pollen-node-modules:/workspace/pollen/node_modules
+      - pollen-nx-cache:/workspace/pollen/.nx
+      # Persist the dev user's home so shell history, npm/dotnet caches,
+      # and any logged-in Nx Cloud / Claude creds survive container rebuilds.
+      - pollen-home:/home/dev
+    environment:
+      - NG_CLI_ANALYTICS=false
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+      - DOTNET_NOLOGO=1
+      - NX_DAEMON=false
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "4200:4200"   # Angular dev server (nx serve web)
+      - "5000:5000"   # dotnet webapi (HTTP)
+      - "5001:5001"   # dotnet webapi (HTTPS)
+    stdin_open: true
+    tty: true
+    # Keep the container alive so `docker compose exec` has something to
+    # attach to. Override with `docker compose run --rm dev <cmd>` for
+    # one-shot commands.
+    command: ["sleep", "infinity"]
+
+volumes:
+  pollen-node-modules:
+  pollen-nx-cache:
+  pollen-home:

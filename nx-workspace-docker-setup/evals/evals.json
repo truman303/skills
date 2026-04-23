@@ -1,0 +1,41 @@
+{
+  "skill_name": "nx-workspace-docker-setup",
+  "evals": [
+    {
+      "id": 1,
+      "name": "polyglot-crm-from-scratch",
+      "prompt": "hey so i'm starting a side project called 'pollen' — it's a small CRM, angular on the frontend and a dotnet webapi on the backend. i'm on a new macbook and dont want to install node or dotnet sdk locally. my repo at ~/code/pollen is empty except for a readme. can you get me to a working nx monorepo where i can run `nx serve` for the angular app and `nx build` for the api, all inside docker? also i'm going to be using claude code a lot in this repo so please set up whatever nx has for ai agents.",
+      "expected_output": "A working set of repo files: Dockerfile.dev with both Node 20 and .NET SDK 8 installed, three docker-compose files (init / build / serve), and a clear step-by-step plan that (a) runs `create-nx-workspace` inside the init container with --preset=angular-monorepo, (b) runs `nx add @nx/dotnet`, (c) runs `dotnet new webapi` inside the container to create the api, (d) runs `npx nx configure-ai-agents` to wire up Claude support, and (e) updates the serve/build compose `command:` lines to the real project names. The assistant should not run `create-nx-workspace` on the host or suggest installing Node/.NET locally.",
+      "files": [],
+      "expectations": [
+        "The Dockerfile written to the user's repo installs the .NET SDK (dotnet-sdk-8.0 or equivalent) in addition to Node.js so that @nx/dotnet has `dotnet` on PATH",
+        "The Dockerfile does NOT bake in a `COPY package*.json` + `npm install` step (which would break the fresh-workspace init phase)",
+        "The plan uses `docker compose -f docker-compose.dev.init.yml run --rm ...` (or equivalent in-container invocation) to run create-nx-workspace, not a host-side `npx create-nx-workspace`",
+        "The create-nx-workspace invocation uses `--preset=angular-monorepo` (not angular-standalone, not react, not empty preset)",
+        "The plan explicitly runs `nx add @nx/dotnet` to register the .NET plugin (not `npm install @nx/dotnet` alone)",
+        "The plan creates a sample .NET webapi using `dotnet new webapi` (or an equivalent dotnet new command) inside the container",
+        "The plan runs `npx nx configure-ai-agents` or documents how to run it, wiring up CLAUDE.md / AGENTS.md / Nx MCP",
+        "The Angular serve command in docker-compose.dev.serve.yml includes `--host 0.0.0.0` so the dev server is reachable from the host",
+        "CHOKIDAR_USEPOLLING=true is set in the serve compose file so file-watching works across bind-mount boundaries",
+        "Port 4200 is published from the serve container to the host",
+        "The assistant does NOT recommend installing Node.js or the .NET SDK on the host machine"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "terse-request",
+      "prompt": "set up a new nx monorepo with angular and c# in docker",
+      "expected_output": "Even from a terse prompt, the assistant should recognize this as a polyglot Nx-in-Docker setup request and produce a complete plan: dev container with Node + .NET SDK, create-nx-workspace with angular-monorepo preset, @nx/dotnet plugin, a sample Angular app, a sample .NET project (webapi or console), and Nx AI agent configuration. Should ask clarifying questions if needed (project names, api vs console, etc.) but should not refuse or produce a partial plan.",
+      "files": [],
+      "expectations": [
+        "The assistant recognizes the request involves Nx + Angular + .NET + Docker and produces a coherent plan covering all four",
+        "The plan includes a Dockerfile that installs both Node and the .NET SDK in a single image",
+        "The plan includes create-nx-workspace with the angular-monorepo preset",
+        "The plan includes `nx add @nx/dotnet` for .NET plugin registration",
+        "The plan includes `nx configure-ai-agents` step (the skill emphasizes this is part of the user's goal)",
+        "The plan includes a sample Angular app and a sample .NET project so the workspace is immediately functional",
+        "The assistant does not silently skip the AI-agents configuration step"
+      ]
+    }
+  ]
+}
