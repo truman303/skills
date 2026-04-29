@@ -25,3 +25,9 @@ Install with the [skills CLI](https://skills.sh/docs/cli).
 ```cmd
 npx skills add https://github.com/truman303/skills --skill razorstar
 ```
+
+## Workspace Forge Skill
+
+[Workspace Forge](workspace-forge/SKILL.md)
+
+Workspace Forge is a skill that helps you build an NX workspace (monorepo) with Angular and .NET [@nx/dotnet](https://www.npmjs.com/package/@nx/dotnet) plugin.

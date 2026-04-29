@@ -1,0 +1,18 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Pin NuGet versions here so every .csproj gets the same package version.
+      The demo's only direct package dependency is Microsoft.AspNetCore.OpenApi
+      (referenced from apps/demo-dotnet-api/demo-dotnet-api.csproj). When you
+      enable central package management the .csproj must drop the inline
+      Version="..."; uncomment the line below to centralize it.
+    -->
+    <!-- <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.6" /> -->
+  </ItemGroup>
+
+</Project>

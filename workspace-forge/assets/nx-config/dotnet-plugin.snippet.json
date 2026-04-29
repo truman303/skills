@@ -1,0 +1,6 @@
+{
+  "plugin": "@nx/dotnet",
+  "options": {
+    "build": { "dependsOn": ["restore", "^build"] }
+  }
+}
