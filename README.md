@@ -26,6 +26,24 @@ Install with the [skills CLI](https://skills.sh/docs/cli).
 npx skills add https://github.com/truman303/skills --skill razorstar
 ```
 
+## JtStar Skill
+
+[JtStar](jtstar/SKILL.md) is the Java partner of RazorStar. Same Basecoat + Datastar UI. The server is Javalin 7, JTE templates, and Jdbi on PostgreSQL, not Razor Pages and EF Core.
+
+Use when building a server-rendered Java web app, a Javalin+JTE+Datastar app, or an operator UI on an existing modular monolith (hydra-v3 is the worked example). Grafana keeps time-series. The UI is the screens you operate.
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/)
+- [Java 21](https://adoptium.net/)
+- [Tailwind CLI](https://tailwindcss.com/docs/installation/tailwind-cli)
+
+### Installation
+
+```cmd
+npx skills add https://github.com/truman303/skills --skill jtstar
+```
+
 ## Workspace Forge Skill
 
 [Workspace Forge](workspace-forge/SKILL.md)
