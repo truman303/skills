@@ -1,20 +1,23 @@
 # JTE templates
 
-Templates live in `src/main/jte`. Subdirectories are packages: `layout/page.jte` is `@template.layout.page(...)`.
+> Placeholders: `MyApp` is the display name, `pkg` the Java package. See SKILL.md.
 
-Install the IntelliJ jte plugin. `@param` is compiled Java. Wrong types fail the build, not at runtime.
+Templates live in `src/main/jte`. A subdirectory is a namespace: `layout/page.jte` is called as `@template.layout.page(...)`.
 
-## Page record in, Content block out
+A template's `@param` lines are compiled Java. A wrong type or a misspelled accessor fails the build. Tell the user to install the IntelliJ jte plugin so those errors show in the editor.
 
-Layouts take `gg.jte.Content` for the body. Pages wrap themselves:
+## The layout
 
-```
+A layout takes the page body as a `gg.jte.Content` parameter. This is the sidebar shell, the default.
+
+`layout/page.jte`:
+
+```html
 @import gg.jte.Content
 @param String title
 @param String userName
-@param boolean authenticated
-@param String currentPage
 @param String csrfToken
+@param String currentPage
 @param Content content
 
 <!DOCTYPE html>
@@ -27,26 +30,16 @@ Layouts take `gg.jte.Content` for the body. Pages wrap themselves:
         (() => {
             try {
                 const stored = localStorage.getItem('themeMode');
-                const isDark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-                if (isDark) document.documentElement.classList.add('dark');
-                window.initialThemeMode = isDark ? 'dark' : 'light';
+                const dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.classList.toggle('dark', dark);
             } catch (_) {}
         })();
     </script>
-    <script type="module" src="/js/basecoat.all.min.js" defer></script>
+    <script type="module" src="/js/basecoat.all.min.js"></script>
     <script type="module" src="/js/datastar.js"></script>
-    <link rel="stylesheet" href="/css/basecoat.css">
     <link rel="stylesheet" href="/css/tailwind-output.css">
-    <link rel="stylesheet" href="/css/theme.css">
 </head>
-<body data-signals="{
-        csrfToken: '${csrfToken}',
-        loading: false,
-        themeMode: window.initialThemeMode || 'light',
-        user: { name: '${userName}', isAuthenticated: ${authenticated} },
-        sidebarCollapsed: false,
-        currentPage: '${title}'
-    }">
+<body>
     <aside class="sidebar" data-side="left" aria-hidden="false">
         <nav aria-label="Main navigation">
             <header class="p-8 m-3">
@@ -54,10 +47,8 @@ Layouts take `gg.jte.Content` for the body. Pages wrap themselves:
             </header>
             <section class="scrollbar ml-1">
                 <ul>
-                    <li>
-                        !{var dashCurrent = currentPage.equals("Dashboard") ? "page" : "false";}
-                        <a href="/dashboard" aria-current="${dashCurrent}">Dashboard</a>
-                    </li>
+                    <li><a href="/dashboard" aria-current="${currentPage.equals("Dashboard") ? "page" : "false"}">Dashboard</a></li>
+                    <li><a href="/items" aria-current="${currentPage.equals("Items") ? "page" : "false"}">Items</a></li>
                 </ul>
             </section>
         </nav>
@@ -65,15 +56,18 @@ Layouts take `gg.jte.Content` for the body. Pages wrap themselves:
     <main class="sidebar-content min-h-screen">
         <header class="border-b border-border px-6 py-4">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold" data-text="$currentPage">${title}</h2>
+                <h2 class="text-lg font-semibold">${title}</h2>
                 <div class="flex items-center gap-3">
-                    <button type="button" class="btn btn-outline btn-sm text-foreground"
-                            data-on:click="
-                                $themeMode = $themeMode === 'dark' ? 'light' : 'dark';
-                                document.documentElement.classList.toggle('dark');
-                                localStorage.setItem('themeMode', $themeMode);"
-                            aria-label="Toggle dark mode">Dark mode</button>
-                    <span class="btn btn-ghost btn-sm" data-text="$user.name">${userName}</span>
+                    <button type="button" class="btn-icon-outline" aria-label="Toggle dark mode"
+                            data-on:click="localStorage.setItem('themeMode', document.documentElement.classList.toggle('dark') ? 'dark' : 'light')">
+                        <svg class="dark:hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                        <svg class="hidden dark:block" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    </button>
+                    <span class="text-sm text-muted-foreground">${userName}</span>
+                    <form method="post" action="/logout">
+                        <input type="hidden" name="csrf" value="${csrfToken}">
+                        <button type="submit" class="btn-sm-outline">Log out</button>
+                    </form>
                 </div>
             </div>
         </header>
@@ -86,64 +80,100 @@ Layouts take `gg.jte.Content` for the body. Pages wrap themselves:
 </html>
 ```
 
-Caller:
+Notes on the layout:
 
-```
-@import pkg.features.items.ItemIndexPage
-@param ItemIndexPage page
+- The inline script in `<head>` sets the `dark` class before the first paint, so a dark-mode user never sees a white flash.
+- `tailwind-output.css` is the only stylesheet. It is `site.css` compiled, and `site.css` imports Tailwind, Basecoat and the theme. Do not link `basecoat.css` or `theme.css` directly. They contain Tailwind directives a browser cannot read.
+- The dark-mode toggle needs no signal. It flips a class and stores the choice. The moon shows in light mode and the sun in dark mode through `dark:hidden` and `hidden dark:block`.
+- `<body>` declares no signals. The user's name and the page title are printed by the server. A signal holding them would add nothing, and text pasted into a `data-signals` object breaks on the first apostrophe.
+- `#toaster` is where SSE toasts are appended. Every page gets one through the layout.
+- Log out is a form, because it changes state and needs the CSRF field.
+
+A page calls the layout and passes its body as a content block between `` @` `` and `` ` ``:
+
+```html
+@import pkg.features.items.ItemPages.IndexPage
+@param IndexPage page
 
 @template.layout.page(
-    title = page.title(),
+    title = "Items",
     userName = page.userName(),
-    authenticated = true,
-    currentPage = "Items",
     csrfToken = page.csrfToken(),
+    currentPage = "Items",
     content = @`
-        <div class="..."> ... ${page.title()} ... </div>
+        <div> ... </div>
     `
 )
 ```
 
-`${}` only accepts String, primitives, enums, and `Content`. Call `.toString()` in the Java page record if you need to print an id. JTE will not call it for you.
+Use named arguments on `@template` calls. Complete pages are in [crud-pages.md](crud-pages.md).
 
-For JSON inside `data-signals`, put the JSON together in Java (`page.signalsJson()`) and output it with care. A mismatched quote in `data-signals` is the usual blank-page bug.
+## Other shells
 
-Dark-mode button SVGs can be copied from the RazorStar layout if you want sun/moon icons. The class names matter more than the icons.
+Ask which one during discovery. Only the layout file differs.
 
-## Three shells
+**Top nav.** Remove the `<aside>`. Put the brand and the section links in a `<nav class="border-b border-border">` across the top, with the dark-mode button, user name and log out at the right. Put the content in `<main class="max-w-7xl mx-auto p-6">`.
 
-The block above is **sidebar**, the default, and what hydra should use. Same Basecoat classes as RazorStar.
+**Creative.** A thin header with the app name, dark-mode button and log out. No section links. Pages link to each other from their own content. Suits a single-purpose app.
 
-**Top nav.** Drop the `aside`. Put brand + links in a top `nav.border-b`, content in `main.max-w-7xl.mx-auto`.
-
-**Creative.** Header strip with app name, dark mode, profile. No section links. Pages navigate themselves.
-
-Landing layout for `/login`: no sidebar. Include `landing.css`. Centered card. See [login-page.md](login-page.md).
+**Landing** (`layout/landing.jte`), for `/login`. No sidebar and no header. It links `landing.css` after `tailwind-output.css` and centres one card. See [login-page.md](login-page.md).
 
 ## Fragments
 
-A fragment is a template rendered to a string and patched by selector.
+A fragment is a template whose root element has an `id`. It is used two ways:
 
-`items/table.jte` takes the same rows as the index page, but only the `<div id="items-table">...</div>` wrapper. The index page includes it:
+- A page includes it: `@template.items.table(page = page)`.
+- An SSE handler renders it alone and patches it over the element with the same id: `sse.patch("items/table.jte", Map.of("page", page))`.
 
+Because both paths run the same file, the first render and every later patch produce the same markup.
+
+Shared fragments live in `src/main/jte/fragments/`: `messages.jte` and `toast.jte`. Their source is in [crud-pages.md](crud-pages.md).
+
+## What `${}` prints
+
+| Type | Result |
+|------|--------|
+| `String` | Printed, HTML-escaped for where it sits (text or attribute) |
+| `int`, `long`, `boolean`, `BigDecimal` and other numbers | Printed |
+| `gg.jte.Content` | Rendered |
+| `UUID`, `Instant`, typed ids, most other objects | Compile error |
+
+So convert in the page record. `ItemRow` holds `String id` and `String created`, already formatted. Templates then stay free of formatting code.
+
+Escaping is automatic and depends on context. A name such as `Mike's "lunch" <b>special</b>` is safe in text and in an attribute value. That is also why `data-signals="${page.signals()}"` works: the JSON's quotes are escaped for the attribute and the browser turns them back.
+
+## Syntax that is easy to get wrong
+
+**Datastar actions are written as they are.** `@get('/items/table')`, `@post(...)`, `@put`, `@patch`, `@delete`, `@peek`, `@setAll`, `@toggleAll` all pass through JTE untouched. Do not double the `@`. JTE has no `@@` escape, so `@@get` reaches the browser as `@@get`, Datastar cannot parse it, and the handler does nothing without any error on the server.
+
+**JTE claims `@if`, `@else` and `@for` as prefixes.** Body text such as `@format` or `@iffy` fails to compile with "Missing @endfor" or "Missing @endif". Email addresses and words such as `@media` are fine. When literal text must start with one of those, write `${"@"}format`, or wrap the passage in `@raw` and `@endraw`.
+
+**`$name` is Datastar, `${...}` is JTE.** `$items.page` passes through. `${page.table().page()}` is evaluated on the server. Both can sit in one attribute:
+
+```html
+data-on:click="$items.page = ${page.table().page() + 1}; @get('/items/table')"
 ```
-@template.items.table(page = page)
+
+**Only server-made numbers and ids go inside a Datastar expression.** Never user text. `data-on:click="$name = '${row.name()}'"` breaks on an apostrophe and lets a crafted name run script. Put the text in a `data-*` attribute and read it with `el.dataset`. See the delete button in [crud-pages.md](crud-pages.md).
+
+**Boolean attributes take a boolean.** `disabled="${!page.hasNext()}"` and `checked="${form.active()}"` print the bare attribute or nothing.
+
+**Ternaries work inside attributes**, including string literals with double quotes:
+
+```html
+<span class="${row.active() ? "badge-secondary" : "badge-outline"}">
 ```
 
-SSE re-renders `items/table.jte` and patches `#items-table`. Morph keeps input focus.
+**A local variable** is declared with `!{var current = currentPage.equals("Items");}`.
 
-Toasts: `fragments/toast.jte` patched onto `#toaster` with `ElementPatchMode.Append`.
+**Control flow is Java.** `@if(page.rows().isEmpty())`, `@elseif(...)`, `@else`, `@endif`, `@for(ItemRow row : page.rows())`, `@endfor`.
 
-Messages: `fragments/message.jte` into `#page-messages`.
+## Keep templates dumb
 
-## Hot reload
+A template prints a page record. It does not query, format dates, or decide business rules. If a template needs a value, add an accessor to the page record, such as `IndexPage.hasNext()`.
 
-`JavalinJte.directoryTemplateEngine()` in dev. Change a `.jte`, refresh. Generated sources from the Gradle plugin still run in `./gradlew run` / tests, so CI compiles templates.
+## Dev and production
 
-## Gotchas
+In dev (`JTE_DEV=true`) the engine reads `.jte` files from disk, so a template change shows on the next refresh without a restart. A Java change still needs a restart.
 
-- **`@` is JTE.** `@get`, `@post`, `@if` are all JTE's character. Datastar actions in a `.jte` file must be written `@@get('/items/table')` and `@@post('/items')`. JTE emits a single `@`. This is the same doubling Razor uses, for the same reason. Forgetting it is a compile error, not a runtime blank page.
-- No implicit `toString()`. Convert in the record.
-- `@if` / `@for` / `@endif` / `@endfor` are Java. `page.items().isEmpty()` works.
-- Named parameters on `@template` calls. The IntelliJ plugin wants them.
-- Keep templates dumb. No Jdbi in a `.jte`. If you need a format helper, put it on the record.
+The Gradle plugin's `generate()` compiles every template during the build. A template that does not compile fails `./gradlew build`, and the packaged app runs with `JTE_DEV=false` on the precompiled classes. See [javalin-app.md](javalin-app.md).

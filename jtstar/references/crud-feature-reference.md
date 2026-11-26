@@ -1,50 +1,75 @@
 # CRUD feature reference
 
-Greenfield. hydra screens are not CRUD against a new table. For those, still steal the page shapes (index table + SSE fragment, form + validation) but the "store" is a published port.
+> Placeholders: `pkg` is the Java package, `Item` / `items` the feature. See SKILL.md.
 
-## File checklist
+The checklist for adding one feature. The code is in [domain-modeling.md](domain-modeling.md) and [crud-pages.md](crud-pages.md).
+
+## Files
 
 ```
-- [ ] Item.java. Record + factory
-- [ ] ItemStore.java. Jdbi
-- [ ] ItemRoutes.java. Routes listed below
-- [ ] ItemPages.java. Page records
-- [ ] src/main/jte/items/index.jte
-- [ ] src/main/jte/items/table.jte
-- [ ] src/main/jte/items/create.jte
-- [ ] src/main/jte/items/edit.jte
-- [ ] src/main/jte/items/details.jte
+src/main/java/pkg/features/items/
+- [ ] ItemId.java        typed id
+- [ ] Item.java          aggregate root: create, change, the rules
+- [ ] ItemForm.java      posted strings, parse() to typed values
+- [ ] ItemStore.java     count, findPage, find, insert, update, delete
+- [ ] ItemPages.java     ItemRow, IndexPage, FormPage, DetailsPage
+- [ ] ItemRoutes.java    the eight routes below
+
+src/main/jte/items/
+- [ ] index.jte          signals, toolbar, delete dialog, includes table.jte
+- [ ] table.jte          fragment with id="items-table": rows and pager
+- [ ] fields.jte         inputs shared by create and edit
+- [ ] create.jte
+- [ ] edit.jte
+- [ ] details.jte
+
+src/main/resources/db/migration/
 - [ ] V00n__items.sql
-- [ ] register(ItemRoutes) in App
-- [ ] nav link in layout
-- [ ] dashboard card
+
+Wiring
+- [ ] construct ItemStore and ItemRoutes in App.java, call items.register(config.routes)
+- [ ] nav link in layout/page.jte
+- [ ] dashboard card with the row count
 ```
+
+Shared files that must already exist from scaffolding: `fragments/messages.jte`, `fragments/toast.jte`, and the `pkg.web` kit.
 
 ## Routes
 
-| Page | Method | Path |
-|------|--------|------|
-| Index | GET | `/items` |
-| Table fragment | GET | `/items/table` |
-| Create form | GET | `/items/new` |
-| Create | POST | `/items` |
-| Details | GET | `/items/{id}` |
-| Edit form | GET | `/items/{id}/edit` |
-| Update | POST | `/items/{id}` |
-| Delete | POST | `/items/{id}/delete` |
+| Purpose | Method | Path | Answers with |
+|---------|--------|------|--------------|
+| Index | GET | `/items` | Full page. Reads `?search=&page=&pageSize=`. |
+| Table fragment | GET | `/items/table` | SSE: table patch, then signals patch |
+| Create form | GET | `/items/new` | Full page |
+| Create | POST | `/items` | Redirect with flash, or the form again with errors |
+| Details | GET | `/items/{id}` | Full page |
+| Edit form | GET | `/items/{id}/edit` | Full page |
+| Update | POST | `/items/{id}` | Redirect with flash, or the form again with errors |
+| Delete | POST | `/items/{id}/delete` | Datastar: table, signals, toast. Plain form: redirect with flash. |
 
-Javalin has no Razor `?handler=` convention. Separate paths. `/items/new` before `/items/{id}` so `new` is not parsed as an id.
+Register `/items/table` and `/items/new` before `/items/{id}`.
 
-## Handler summary
+## What happens on each interaction
 
-| Handler | Success | Error |
-|---------|---------|-------|
-| index GET | full page | `ErrorDetail` on the page |
-| table GET | SSE patch `#items-table` | patch `#sse-message-container` |
-| create/update POST | redirect + flash in session | re-render form with errors |
-| delete POST from table | patch table + toast | patch message |
-| delete POST from edit | redirect to index | re-render edit |
+| The user | The browser sends | The server does |
+|----------|-------------------|-----------------|
+| Opens `/items` | GET | Renders the page with state from the query string |
+| Types in search | `@get('/items/table')` after 300 ms, with signals | Patches `#items-table`, patches `items` signals |
+| Clicks Previous or Next | Sets `$items.page`, then `@get('/items/table')` | Same |
+| Changes rows per page | Sets `$items.page = 1`, then `@get('/items/table')` | Same |
+| Confirms a delete | `@post('/items/{id}/delete')` | Deletes, patches table and signals, appends a toast |
+| Submits create or edit | Form POST | Parses, asks the aggregate, saves, redirects. On failure renders the form with messages. |
 
-Flash: `ctx.sessionAttribute("flash", "Created")` then redirect. Index reads and clears it. That is PRG. Do not invent TempData.
+Nothing on the index page reloads the page except following a link.
 
-Page templates: [crud-pages.md](crud-pages.md).
+## Adapting it to a real entity
+
+- Rename `Item`, `items` and `/items` throughout. The signal object takes the plural name, and the string passed to `TableState.fromSignals` must match it.
+- Put each field in five places: the aggregate, the form record, the store's SQL and row mapper, the row or page record, and the templates.
+- A field that is not text gets parsed in `ItemForm.parse()` and nowhere else.
+- A rule that needs the database goes next to the store call, as `nameIsFree` does.
+- If the entity has child rows, a status workflow, or must trigger something after a change, read the matching section of [domain-modeling.md](domain-modeling.md) before writing the aggregate.
+
+## Done means
+
+The browser checks at the end of [crud-pages.md](crud-pages.md) pass. A feature whose pager reloads the page is not done.

@@ -1,6 +1,6 @@
 # Docker setup (greenfield)
 
-> `myapp` is the lowercase app name. Attach/hydra: skip this file. Use `deploy/compose/compose.dev.yml` or `compose.rig.yml`.
+> `myapp` is the lowercase app name. When attaching to an existing app, skip this file and use the database that app already runs on.
 
 ## `.env` (project root)
 
@@ -44,7 +44,7 @@ services:
 
 `$$` becomes `$` inside the container.
 
-Postgres 16 to match hydra's fast loop. Not 15. No reason to be older.
+If port 5432 is taken on the user's machine, change the host side of the mapping and the port in `DATABASE_URL` together.
 
 ## `.gitignore`
 

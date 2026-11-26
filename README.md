@@ -28,9 +28,13 @@ npx skills add https://github.com/truman303/skills --skill razorstar
 
 ## JtStar Skill
 
-[JtStar](jtstar/SKILL.md) is the Java partner of RazorStar. Same Basecoat + Datastar UI. The server is Javalin 7, JTE templates, and Jdbi on PostgreSQL, not Razor Pages and EF Core.
+### Overview
 
-Use when building a server-rendered Java web app, a Javalin+JTE+Datastar app, or an operator UI on an existing modular monolith (hydra-v3 is the worked example). Grafana keeps time-series. The UI is the screens you operate.
+[JtStar Skill](jtstar/SKILL.md)
+
+Guides the user through building a server-rendered Java web application with Javalin 7, JTE templates, Jdbi on a PostgreSQL database, Datastar for UI reactivity and real-time updates via SSE, and Basecoat UI components on Tailwind CSS. The domain code follows a small DDD shape: aggregates as records, typed ids, and domain events when something consumes them.
+
+Use when the user asks to create a jtstar app, a Javalin+JTE+Datastar app, a Java CRUD app without a SPA, Spring or Hibernate, or a web UI for an existing Java application.
 
 ### Prerequisites
 

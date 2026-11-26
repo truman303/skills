@@ -1,41 +1,50 @@
 # Dashboard
 
-Authenticated home. One summary card per aggregate (greenfield) or per live count the composition root already has (hydra).
+> Placeholders: `pkg` is the Java package. See SKILL.md.
 
-## Greenfield
+The page a signed-in user lands on. One summary card per feature.
 
-`GET /dashboard` loads `select count(*)` per feature. No SSE. Counts are a page load.
+## Route
+
+`GET /dashboard` loads one count per feature and renders the page. The counts are read when the page loads. No SSE.
 
 ```java
 public record DashboardPage(
         String userName,
+        String csrfToken,
         int itemCount
-        // one int per feature as they land
+        // one count per feature as features land
 ) {}
 ```
 
-Card: Basecoat `.card`, count, short description, link to the index. Grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`.
+`DashboardRoutes` takes the stores it needs counts from in its constructor, calls `itemStore.count("")`, and renders `dashboard/index.jte` with the page record.
 
-Add a card when you add a feature. That is the whole scaling rule.
+## Layout
 
-## hydra
+- A line of welcome: "Welcome back, ${page.userName()}".
+- A grid of cards: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`.
+- Each card is a Basecoat `card` with the count, a one-line description and a link to the feature's index.
 
-The dashboard is the first proof the UI is in-process. Pass counts from `SkeletonApp` into `UiServer`:
+```html
+<div class="card">
+    <header>
+        <h2>Items</h2>
+        <p>Things you sell</p>
+    </header>
+    <section>
+        <p class="text-3xl font-semibold">${page.itemCount()}</p>
+    </section>
+    <footer>
+        <a href="/items" class="btn-outline">View items</a>
+        <a href="/items/new" class="btn-primary">Add item</a>
+    </footer>
+</div>
+```
 
-- stored readings, credits, quarantined, drained
-- scheduled meters, TOA dispatched
-- optional: campaign list if any exist
+## Growing it
 
-Plus a Grafana button. See [observability.md](observability.md).
+Add a card when you add a feature. That is the whole rule.
 
-Do not SSE the whole dashboard on attach unless a count is expected to twitch every second (demo TOA loop). If you do, patch a `#toa-counts` fragment, not the entire layout.
+If one number on the dashboard has to move while the page is open, wrap that number in a fragment and patch it with a live view. Leave the other cards alone. See [datastar-sse.md](datastar-sse.md).
 
-## Welcome line
-
-"Welcome back, {userName}" is enough. hydra stub: "Hydra operator".
-
-## Quick actions
-
-Greenfield: "Add item" link.
-
-hydra: "Request TOA", "Start campaign", "Open Grafana".
+Charts and rates do not go here. See [observability.md](observability.md).

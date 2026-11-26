@@ -1,160 +1,132 @@
 ---
 name: jtstar
-description: Build a server-rendered Java web app with Javalin, JTE templates, Datastar (SSE HTML patching), Basecoat UI, and PostgreSQL via Jdbi. Use when the user asks to create a jtstar app, a Javalin+JTE+Datastar app, a Java SSR CRUD app, or an operator UI on an existing Java modular monolith such as hydra-v3. Offer this stack when they want a Java web app without a SPA, Spring, or Hibernate. Partner of the razorstar skill, same UI ideas, Java-native server.
+description: Build a server-rendered Java web app with Javalin, JTE templates, Datastar (SSE HTML patching), Basecoat UI, and PostgreSQL via Jdbi, with a small DDD-style domain model (aggregates, typed ids, domain events when needed). Use when the user asks to create a jtstar app, a Javalin+JTE+Datastar app, a Java SSR CRUD app, or a web UI for an existing Java application. Offer this stack when they want a Java web app without a SPA, Spring, or Hibernate.
 ---
 
 # JtStar app builder
 
-A JtStar app is a Javalin process that renders **JTE** templates and uses **Datastar** for UI reactivity. Server-rendered by default, SSE-patched where the page needs to move. Same Basecoat + Tailwind look as RazorStar. The server side is Java, not a port of ASP.NET.
+A JtStar app is a Javalin process that renders JTE templates and uses Datastar for reactivity. Pages are rendered on the server. Where a page needs to change without reloading, the server sends HTML over SSE and Datastar morphs it in. The look comes from Basecoat and Tailwind.
 
 Work through the phases with the user. Do not skip the checkpoints.
-
-This is the Java partner of [razorstar](../razorstar/SKILL.md). Steal the UI patterns. Do not copy MediatR, ErrorOr, EF Core, or ASP.NET Identity. Those are .NET answers to .NET problems.
 
 ## Table of contents
 
 - [Tech stack](#tech-stack)
-- [What not to copy from RazorStar](#what-not-to-copy-from-razorstar)
 - [Bundled resources](#bundled-resources)
-- [Phase 1: Discovery](#phase-1-discovery---gather-requirements-before-writing-code)
+- [Phase 1: Discovery](#phase-1-discovery)
 - [Phase 2: Scaffold](#phase-2-scaffold)
-- [Phase 3: First run](#phase-3-first-run---verify-the-boilerplate-works)
-- [Phase 4: First feature](#phase-4-build-the-first-feature)
+- [Phase 3: First run](#phase-3-first-run)
+- [Phase 4: First feature](#phase-4-first-feature)
 - [Phase 5: Handoff](#phase-5-handoff)
 - [Architecture principles](#architecture-principles)
-- [The separation rule](#the-separation-rule)
-- [Name substitution](#name-substitution-reference)
+- [What goes where](#what-goes-where)
+- [Name substitution](#name-substitution)
+- [References](#references)
 
 ## Tech stack
 
-| Layer | Technology | Why this, not the .NET analogue |
-|-------|-----------|----------------------------------|
-| HTTP | Javalin 7, virtual threads on | No Spring. Composition root, not a container. |
-| Templates | JTE 3 (type-safe `.jte`) | Razor's cousin that compiles to Java. HTML stays HTML. |
-| Reactivity | Datastar + `datastar-java-sdk-core` | Same protocol as RazorStar. Thin Javalin adapters, the SDK has no Javalin module. |
-| Components / CSS | Basecoat UI + Tailwind v4 | Stack-agnostic. Copy from `assets/`. |
-| Persistence | Jdbi 3 + HikariCP + PostgreSQL | SQL you write, records you map. Not Hibernate. |
-| Schema | Flyway on greenfield. Existing SQL bootstrap when attaching. | hydra-v3 already applies schema in-process. |
-| Auth | Javalin cookie session + bcrypt | Not ASP.NET Identity. hydra attach: stub until context 11. |
-| Failures | Sealed `Result<T>` | Java 21 can express this. Do not add an ErrorOr port. |
-| Logging | Log4j2 | Matches hydra. |
-| Metrics | Micrometer → Prometheus. Grafana for time-series. | The UI does not grow charts. |
+| Layer | Technology | Notes |
+|-------|------------|-------|
+| HTTP | Javalin 7, virtual threads on | `App.java` wires everything by hand. No container. |
+| Templates | JTE 3 | Type-safe `.jte` files compiled to Java |
+| Reactivity | Datastar v1.0.5 + `datastar-java-sdk-core` 1.0.1 | The SDK has no Javalin module. The skill supplies the adapter. |
+| Components and CSS | Basecoat UI + Tailwind v4 | Copied from `assets/` |
+| Persistence | Jdbi 3 + HikariCP + PostgreSQL | Hand-written SQL in each store, rows mapped to records. No ORM. |
+| Schema | Flyway | Runs at startup |
+| Domain | Java 21 records and sealed types | Aggregates, typed ids, `Result<T>` for expected failures |
+| Auth | Session cookie + bcrypt | CSRF protection included |
+| Logging | Log4j2 | |
 
-Java 21. Frontend libraries are bundled locally for air-gapped environments.
+Java 21. Frontend libraries are bundled locally, so the app works with no internet access.
 
-Pin Datastar to the JS file in `assets/js/datastar.js` and `dev.data-star:datastar-java-sdk-core:1.0.0`. Datastar moves. Do not float to "latest" on a whim.
-
-## What not to copy from RazorStar
-
-| RazorStar | JtStar |
-|-----------|--------|
-| `dotnet new webapp` | Gradle Java app, or a new module in an existing build |
-| Razor Pages + PageModel | Javalin routes + JTE + a page record |
-| MediatR commands/queries | Route handler calls a store or a small service. Methods are fine. |
-| ErrorOr NuGet | `sealed interface Result<T>` |
-| EF Core + Identity DbContext | Jdbi + SQL. Session user table only if greenfield auth is on. |
-| `Program.cs` DI graph | `App.java` constructs what it needs and passes it in |
-| `wwwroot/` | `src/main/resources/public/` (Javalin classpath static files) |
-| PowerShell startup | `scripts/start-dev-environment.sh` |
-| Custom Grafana-like cards as the ops story | Grafana already owns numbers-over-time when the host app has it |
-
-Keep from RazorStar: Basecoat markup, Datastar tao (patch HTML, starve signals), feature folders, login + dashboard, CRUD page shapes, tweakcn themes.
+The browser library and the Java SDK are a matched pair. Use the bundled `assets/js/datastar.js` and the SDK version in [project-scaffolding.md](references/project-scaffolding.md). Do not swap either for "latest" without rerunning the browser checks in [crud-pages.md](references/crud-pages.md).
 
 ## Bundled resources
 
-`${SKILL_DIR}` is this skill's directory (`jtstar/` wherever the runtime mounted it).
+`${SKILL_DIR}` is this skill's directory.
 
-| Folder | Contents | When to copy |
-|--------|----------|-------------|
-| `assets/` | CSS (basecoat, tailwind source, theme, landing), JS (basecoat, datastar, site) | Step 3, into `src/main/resources/public/` |
-| `scripts/` | `start-dev-environment.sh` | Greenfield Step 2 only |
-| `references/` | Implementation docs. Not copied into the project. | Read as needed |
+| Folder | Contents | When |
+|--------|----------|------|
+| `assets/` | CSS (Basecoat, Tailwind entry, theme, landing) and JS (Basecoat, Datastar, site) | Copied into `src/main/resources/public/` in Phase 2 |
+| `scripts/` | `start-dev-environment.sh` | Copied in Phase 2, greenfield only |
+| `references/` | Implementation docs with complete code | Read as each step needs them. Not copied. |
 
-## Phase 1: Discovery - gather requirements before writing code
+The code in `references/` is complete and has been run. Copy it and rename. Do not reinvent the helpers from memory: several of them encode fixes for problems that only show up in a browser.
 
-**Do not start scaffolding until this phase is done.** Two or three exchanges. Saves the wrong module in the wrong repo.
+## Phase 1: Discovery
 
-### 1A. Greenfield or attach?
+**Do not scaffold until this phase is done.** It takes two or three exchanges.
 
-Ask: *"Is this a new app from scratch, or are we adding an operator UI onto an existing Java process?"*
+### 1A. New app or existing app?
 
-| Track | When | Postgres / Grafana |
-|-------|------|--------------------|
-| **Greenfield** | Empty folder, or a new Gradle build | Skill stands up Postgres via Docker. Optional Prometheus later. |
-| **Attach** | hydra-v3, or any modular monolith that already boots | Reuse the host's database and metrics. Do not add a second compose stack. |
+Ask: *"Is this a new app from scratch, or a web UI for a Java application that already exists?"*
 
-hydra-v3 is the attach case this skill was written against. The operator UI is context 6, a delivery surface, not a domain. Grafana already scrapes `METRICS_PORT` (9464). Javalin serves screens on a new port (8080). Leave the scrape endpoint alone unless the user asks to fold `/metrics` into Javalin.
+| Track | When | Database |
+|-------|------|----------|
+| **Greenfield** | Empty folder or a new Gradle build | The skill sets up Postgres in Docker |
+| **Attach** | An existing Java process needs screens | The host's database. No second one. |
 
-If they are in `ipay/play/hydra-v3`, default to **attach**. See [attach-modular-monolith.md](references/attach-modular-monolith.md).
+For attach, read [attach-existing-app.md](references/attach-existing-app.md) now. It has its own questions and replaces the greenfield scaffold steps.
 
-### 1B. Ask for the app name (and package)
-
-The display name goes in `<title>`, sidebar, footer. The Java package is separate.
+### 1B. Name and package
 
 Ask: *"What should the app be called, and what Java package should we use?"*
 
-| Variant | Derivation | Example |
-|---------|------------|---------|
-| `MyApp` | Display name, PascalCase class prefix | `InventoryTracker` |
-| `myapp` | lowercase Docker / db (greenfield only) | `inventorytracker` |
+| Placeholder | Meaning | Example |
+|-------------|---------|---------|
+| `MyApp` | Display name in the title, sidebar and footer | `InventoryTracker` |
+| `myapp` | Lowercase name for Docker and the database | `inventorytracker` |
 | `pkg` | Java package | `com.example.inventory` |
 
-hydra attach: display **Hydra**, package `za.co.ipay.hydra.v3.ui`, module `:hes-ui`. Do not invent a new database name.
+Credentials are never hardcoded. They live in `.env`, which is gitignored.
 
-Credentials are never hardcoded. Greenfield: `.env`, gitignored. Attach: existing `DATABASE_URL` / `DB_USER` / `DB_PASSWORD`.
+### 1C. The first feature
 
-### 1C. Ask about the first feature
+Every greenfield app ships with login and a dashboard. It also needs one real feature to prove the stack end to end.
 
-**Greenfield.** Same question as RazorStar: entity name, fields, any special behaviour. Every greenfield app ships login + dashboard. They still need one CRUD feature.
+Ask: *"What is the first thing this app should manage? Give me its name and its fields, with a type for each."*
 
-**Attach (hydra-v3).** The UI does not own new aggregates. It calls published ports. Ask which operator screen to build first:
+Then ask the questions that decide the shape of the domain code. Skip any the user has already answered.
 
-| Screen | Why | Datastar |
-|--------|-----|----------|
-| **Campaign trigger + live progress** (recommended) | The thing an operator *does*. Progress is a live view. | SSE patch of the progress panel |
-| Registry list | Usage points / devices. Closest to CRUD. | Table fragment search |
-| Quarantine triage | Drainable identity failures | Table + "why" |
-| Single-meter TOA | Calls `OrchestrationService.requestToaDelivery` | Form POST, then patch task status |
+| Question | Why it matters |
+|----------|----------------|
+| Does one of these have rows that belong to it, such as lines on an order? | Child entities inside the aggregate, saved together |
+| Does it move through statuses, with rules about which moves are allowed? | Named methods on the aggregate, not a status dropdown |
+| Must anything else happen when it changes: an email, an audit entry, another record updated? | Domain events and a service method |
+| Can two people edit the same one at the same time? | A version column and a stale-save check |
+| Which fields must be unique? | A database index and a check beside the store |
 
-Do not start with a custom metrics dashboard. Grafana has "Hydra TOA". Put a link to `http://localhost:3000` on the operator dashboard and move on.
+If every answer is no, the feature is a flat aggregate like `Item` in the references. That is common and fine. See [domain-modeling.md](references/domain-modeling.md) for each shape.
 
 ### 1D. Theme and layout
 
-Same as RazorStar. Defaults live in `assets/`. Offer tweakcn, logo, login background. See [theme-customization.md](references/theme-customization.md).
+The default theme lives in `assets/css/theme.css`. Offer, in one message:
 
-Ask: *"Sidebar, top nav, or creative (minimal chrome)?"*
+- a custom colour theme from [tweakcn](https://tweakcn.com/editor/theme), pasted in before scaffolding
+- a logo for the sidebar
+- a background image for the login page
 
-| Option | Use |
-|--------|------|
-| **Sidebar** (default) | Many sections. hydra operator: this. |
-| **Top nav** | Few sections |
-| **Creative** | Single-purpose / dashboard-led |
+Any of these can wait. See [theme-customization.md](references/theme-customization.md).
+
+Ask: *"Sidebar, top navigation, or a minimal header?"*
+
+| Option | Use when |
+|--------|----------|
+| **Sidebar** (default) | Several sections |
+| **Top nav** | A few sections |
+| **Minimal header** | One purpose, pages link to each other |
 
 ### 1E. Confirm the plan
 
-**Greenfield example:**
-
 > *"Here's what I'll set up for **InventoryTracker** (`com.example.inventory`):*
-> 1. *Javalin 7 + JTE + Datastar + Basecoat, Java 21, virtual threads*
-> 2. *PostgreSQL via Docker (credentials in `.env`)*
-> 3. *Session login, bcrypt, seeded admin from `.env`*
-> 4. *Dashboard with a summary card*
-> 5. *CRUD for **Products** (Name, Price, IsActive)*
-> 6. *Navigation: **Sidebar***
+> 1. *Javalin 7, JTE, Datastar and Basecoat on Java 21*
+> 2. *PostgreSQL in Docker, credentials in `.env`*
+> 3. *Session login with a first admin user from `.env`*
+> 4. *A dashboard with one summary card*
+> 5. *Products (name, price, active): list with live search and paging, create, edit, details, delete*
+> 6. *Sidebar navigation*
 >
-> *Sound good?*"
-
-**hydra attach example:**
-
-> *"Here's what I'll add to hydra-v3:*
-> 1. *New `:hes-ui` Gradle module, package `za.co.ipay.hydra.v3.ui`*
-> 2. *Javalin in the same JVM as `SkeletonApp`, port 8080*
-> 3. *Leave Prometheus/Grafana on 9464/3000*
-> 4. *Stub session (context 11 RBAC is later)*
-> 5. *Dashboard + first screen: **campaign trigger + live progress***
-> 6. *Sidebar layout*
->
-> *The UI module depends on published ports (`registry-api`, `audit-api`, `alarms-api`) and the orchestration service. It does not depend on `*.impl` packages. Sound good?*"
+> *Sound good?"*
 
 Wait for confirmation.
 
@@ -162,74 +134,51 @@ Wait for confirmation.
 
 ## Phase 2: Scaffold
 
-Work in order. Placeholders: `MyApp` / `myapp` / `pkg`. Substitute everywhere.
+Work in order. Substitute `MyApp`, `myapp` and `pkg` everywhere.
 
-### Greenfield steps
+1. Gradle Java 21 project and packages. [project-scaffolding.md](references/project-scaffolding.md)
+2. `.env`, Docker Postgres, and `scripts/start-dev-environment.sh`. [docker-setup.md](references/docker-setup.md)
+3. Copy `assets/` into `src/main/resources/public/`. Build `tailwind-output.css` with the Tailwind CLI.
+4. `Result` and `ErrorDetail`. [architecture-patterns.md](references/architecture-patterns.md)
+5. The `pkg.web` kit: `JavalinResponseAdapter`, `Sse`, `Signals`, `TableState`, `Message`, `Templates`. [datastar-sse.md](references/datastar-sse.md)
+6. `App.java`, `SessionAuth`, `ExceptionMapping`, `error.jte`. [javalin-app.md](references/javalin-app.md)
+7. The layout for the chosen navigation, plus `fragments/messages.jte` and `fragments/toast.jte`. [jte-templates.md](references/jte-templates.md) and [crud-pages.md](references/crud-pages.md)
+8. Login and dashboard. [login-page.md](references/login-page.md) and [dashboard-page.md](references/dashboard-page.md)
 
-1. Gradle Java 21 app + packages. See [project-scaffolding.md](references/project-scaffolding.md).
-2. `.env` + Docker Postgres + copy `scripts/start-dev-environment.sh`. See [docker-setup.md](references/docker-setup.md).
-3. Copy `assets/` into `src/main/resources/public/`. Tailwind CLI for `tailwind-output.css`.
-4. Shared kernel: `Result`, `Clock`, Jdbi, Flyway, SSE helpers. See [architecture-patterns.md](references/architecture-patterns.md) and [datastar-sse.md](references/datastar-sse.md).
-5. `App.java` composition root. See [javalin-app.md](references/javalin-app.md).
-6. JTE layouts matching the nav choice. See [jte-templates.md](references/jte-templates.md).
-7. Login + dashboard. See [login-page.md](references/login-page.md) and [dashboard-page.md](references/dashboard-page.md).
-
-### Attach steps (hydra-v3)
-
-Do **not** run greenfield steps 2 or 7's Identity seed against a new database.
-
-1. Add `:hes-ui` to `settings.gradle`. Plugin `gg.jte.gradle` on that module only.
-2. `hes-ui` depends on published leaves + `:orchestration` (the service, no `impl` split yet) + Javalin/JTE/Datastar. Never `:registry` impl, `:mdm` internals, `:audit` impl.
-3. Copy assets into `hes-ui/src/main/resources/public/`.
-4. `UiServer` (Javalin) constructed in `SkeletonApp`, started next to the existing `MetricsHttpServer`. Default `UI_PORT=8080`.
-5. Extend `architecture` ArchUnit tests so `..ui..` may depend on `..registry.api..`, `..audit.api..`, `..alarms.api..`, `..orchestration..`, `..contracts..`, and must not depend on `..registry.impl..`, `..audit.impl..`, `..mdm..`, `..collector..`.
-6. Stub auth: a shared operator name from env, or a single-password gate. Do not stand up a users table on Citus for this.
-7. Dashboard that reads counts already on the composition root (ingest, quarantine, tasks, campaign progress) plus a Grafana link.
-
-Details: [attach-modular-monolith.md](references/attach-modular-monolith.md).
+Run `./gradlew build` before going on. JTE templates compile during the build, so a template error shows up here.
 
 ---
 
-## Phase 3: First run - verify the boilerplate works
+## Phase 3: First run
 
-**Checkpoint. Do not build the first feature until they have seen the app.**
+**Checkpoint. Do not build the first feature until the user has seen the app.**
 
-**Greenfield:**
-
-> *"Boilerplate is ready.*
+> *"The base app is ready.*
 > 1. `./scripts/start-dev-environment.sh`
 > 2. `./gradlew run`
-> 3. *Open the URL in the console (http://localhost:8080)*
-> 4. *Sign in with `DEV_ADMIN_USERNAME` / `DEV_ADMIN_PASSWORD` from `.env`*
+> 3. *Open http://localhost:8080*
+> 4. *Sign in with `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` from `.env`*
 >
 > *Tell me when you're in."*
-
-**hydra attach:**
-
-> *"UI is wired into the skeleton.*
-> 1. *Start the rig you already use (`compose.rig.yml` or `compose.dev.yml`)*
-> 2. `./gradlew :app-skeleton:run`
-> 3. *Operator UI: http://localhost:8080*
-> 4. *Grafana is still http://localhost:3000 (admin/admin)*
->
-> *You should see the dashboard with live counts from the TOA demo loop. Tell me when you're in."*
 
 Wait for confirmation.
 
 ---
 
-## Phase 4: Build the first feature
-
-### Greenfield CRUD
+## Phase 4: First feature
 
 ```
 src/main/java/pkg/features/items/
-  Item.java              # record + factory validation
-  ItemStore.java         # Jdbi SQL
-  ItemRoutes.java        # GET pages, GET fragment, POST create/edit/delete
+  ItemId.java        # typed id
+  Item.java          # aggregate root: factory, methods, rules
+  ItemForm.java      # posted strings, parsed to types
+  ItemStore.java     # Jdbi
+  ItemPages.java     # page records the templates print
+  ItemRoutes.java
 src/main/jte/items/
-  index.jte
-  table.jte              # fragment for SSE morph
+  index.jte          # signals, toolbar, delete dialog
+  table.jte          # the fragment SSE patches
+  fields.jte         # inputs shared by create and edit
   create.jte
   edit.jte
   details.jte
@@ -237,83 +186,83 @@ src/main/resources/db/migration/
   V002__items.sql
 ```
 
-Register routes from `App.java`. Add a nav link and a dashboard card. Flyway runs on boot. Ask them to restart and create a row.
+Build it in this order:
 
-See [crud-feature-reference.md](references/crud-feature-reference.md) and [crud-pages.md](references/crud-pages.md).
+1. The domain: id, aggregate, form record, store, migration. [domain-modeling.md](references/domain-modeling.md)
+2. The pages and routes. [crud-pages.md](references/crud-pages.md)
+3. Wiring: construct and register in `App.java`, add a nav link, add a dashboard card. [crud-feature-reference.md](references/crud-feature-reference.md)
 
-### hydra attach
+The index page must behave like this:
 
-The "entity" is not a new table. Routes call `OrchestrationService`, `TargetQuery`, `IdentityResolver`, `CampaignProgressStore` (via the service), `AlarmStore` if needed.
+- Search, paging and page size update the table without reloading the page.
+- Delete asks for confirmation, updates the table and shows a toast.
+- Create and edit are ordinary forms that redirect with a flash message.
 
-Campaign live view: `data-init="@get('/campaigns/{id}/live')"` opens an SSE stream. A virtual thread reads `campaignProgress` on a short interval and patches the panel when counts change. The UI must **not** subscribe to `SpineBus`. A UI consumer group would steal or duplicate domain events. Read the projection.
-
-After it works, ask them to trigger a campaign (or let `DemoToaLoop` keep ticking) and watch the panel update without a full page load.
+The full check is the list at the end of [crud-pages.md](references/crud-pages.md). Run it in a browser yourself if you can drive one. If you cannot, give the user the list and ask them to run it. A build that compiles proves nothing about whether a click reaches the server.
 
 ---
 
 ## Phase 5: Handoff
 
-Greenfield: login, dashboard, one CRUD feature, how to add the next entity (store + routes + jte + Flyway + nav + card).
+Tell the user what they have: login, dashboard, one complete feature. Then how to add the next one: copy the feature package and template folder, rename, write the migration, register in `App.java`, add the nav link and the card.
 
-Attach: dashboard, first operator screen, the Grafana split, the ArchUnit rule, "next screen is another route class against an existing port."
-
-Tailwind watcher, both tracks:
+The Tailwind watcher rebuilds the stylesheet as templates change:
 
 ```bash
 ./tailwindcss -i src/main/resources/public/css/site.css -o src/main/resources/public/css/tailwind-output.css --watch
 ```
 
-Adjust the path if the module is `hes-ui/`.
-
 ---
 
 ## Architecture principles
 
-1. **Server-rendered first.** Javalin GET returns a full JTE page. Anchors navigate. The browser owns history.
-2. **Datastar for reactivity.** Signals for input and toggles. SSE to patch HTML. Prefer fat morph over fine-grained signal graphs. See the tao in [architecture-patterns.md](references/architecture-patterns.md).
-3. **Sealed `Result` over exceptions for expected failure.** Validation, not-found, rule violations. Broken connections still throw.
-4. **Feature packages, not a `controllers/` dump.** `features/items/` owns routes, store, and page records. Templates live under `src/main/jte/items/`.
-5. **SQL-first.** Jdbi maps to records. No session, no dirty-checking, no lazy load. Citus `ON CONFLICT` and composite keys stay visible.
-6. **Composition root.** `App.java` / `SkeletonApp` constructs the graph. Javalin is not an IoC container.
-7. **UI is a delivery surface.** In a modular monolith it depends on published language, never another context's internals.
-8. **Grafana watches. JTE does.** If the question is "how is the rate changing?", it is not a JtStar page.
+1. **The server renders.** A GET returns a full page. Links navigate between pages and the browser owns history.
+2. **Datastar updates a page in place.** Table search, paging, page size and row actions fetch a fragment over SSE and morph it in. They never reload the page. A pager built from links is a bug.
+3. **The server holds the state.** Signals carry what the user is typing and the few values the server needs back. Rows, counts and messages are HTML.
+4. **One fragment, two uses.** The template that renders a table inside the page is the same one an SSE handler patches, so the first render and every update match.
+5. **Aggregates own the rules.** An aggregate root is a record whose factory and methods return `Result`. Anything that exists is valid. Routes and services sequence work and hold no rules.
+6. **Typed at the edge.** A form record turns posted strings into types. The aggregate never parses text.
+7. **One store per aggregate.** It loads and saves the whole aggregate in one transaction. The SQL is written out in the store.
+8. **Events only with a consumer.** Add domain events when a change must cause something elsewhere. Not before.
+9. **Expected failures are values.** Validation, not found and rule violations are `Result.Err`. Exceptions are for what nobody planned.
+10. **Features, not layers.** `features/items/` holds everything about items.
+11. **No user text inside a Datastar expression.** Pass it through a `data-*` attribute or a JSON-encoded signal.
 
-## The separation rule
+## What goes where
 
-| Concern | Approach |
-|---------|----------|
-| Forms / navigation | GET page, POST then redirect. Ordinary HTTP. |
-| UI reactivity | Datastar signals |
-| Realtime / progress | Datastar SSE (`PatchElements` / `PatchSignals`) |
-| Numeric time-series | Prometheus + Grafana. Link out. |
-| Micro-actions | Optional JSON. Prefer HTML patches. |
+| Interaction | Mechanism |
+|-------------|-----------|
+| Moving between pages | `<a href>` and a full page GET |
+| Create and edit forms | Form POST, redirect, flash message |
+| Table search, paging, page size | Signals and `@get` of the table fragment |
+| Row actions such as delete | `@post`, then patch the table and append a toast |
+| Progress of a running job | A live SSE view opened with `data-init` |
+| Dialogs and toggles | A signal or a DOM call in `data-on:click` |
+| Rates and time-series charts | Prometheus and Grafana. Link to them. |
 
-The backend drives the frontend. Prefer patching over signals.
-
-## Name substitution reference
+## Name substitution
 
 | Placeholder | Meaning |
-|-------------|--------|
-| `MyApp` | Display name, class prefixes (`InventoryTracker`) |
-| `myapp` | Docker service, db name (greenfield) |
+|-------------|---------|
+| `MyApp` | Display name (`InventoryTracker`) |
+| `myapp` | Docker service and database name |
 | `pkg` | Java package (`com.example.inventory`) |
-| `Item` / `items` | First feature type / URL segment |
+| `Item`, `items` | The first feature's type and URL segment |
 
-hydra attach substitutes `za.co.ipay.hydra.v3.ui`, module `hes-ui`, and does not create `myapp` Docker names.
+## References
 
-## Additional references
-
-- [project-scaffolding.md](references/project-scaffolding.md). Gradle, deps, static files, Tailwind
-- [attach-modular-monolith.md](references/attach-modular-monolith.md). hydra-v3 module, ArchUnit, composition root
-- [javalin-app.md](references/javalin-app.md). `App.java`, sessions, virtual threads, exception handler
-- [jte-templates.md](references/jte-templates.md). Layouts, fragments, page records
-- [datastar-sse.md](references/datastar-sse.md). Javalin adapters, patch helpers, live views
-- [architecture-patterns.md](references/architecture-patterns.md). Packages, `Result`, Jdbi, Datastar tao
-- [docker-setup.md](references/docker-setup.md). Greenfield compose + `.env`
-- [login-page.md](references/login-page.md). Session login
-- [dashboard-page.md](references/dashboard-page.md). Cards, Grafana link
-- [crud-feature-reference.md](references/crud-feature-reference.md). File checklist
-- [crud-pages.md](references/crud-pages.md). Index/create/edit/details in JTE
-- [ui-component-patterns.md](references/ui-component-patterns.md). Basecoat + Datastar
-- [theme-customization.md](references/theme-customization.md). tweakcn into `theme.css`
-- [observability.md](references/observability.md). What belongs in Grafana vs the UI
+- [project-scaffolding.md](references/project-scaffolding.md): Gradle, versions, static files, Tailwind
+- [docker-setup.md](references/docker-setup.md): Postgres in Docker, `.env`
+- [architecture-patterns.md](references/architecture-patterns.md): package layout, `Result`, who calls whom
+- [domain-modeling.md](references/domain-modeling.md): aggregates, entities, value objects, typed ids, stores, domain events
+- [javalin-app.md](references/javalin-app.md): `App.java`, sessions, CSRF, exception handling
+- [datastar-sse.md](references/datastar-sse.md): the SSE kit, signals, table state, live views
+- [jte-templates.md](references/jte-templates.md): layout, fragments, JTE syntax traps
+- [crud-pages.md](references/crud-pages.md): every template and route for one feature
+- [crud-feature-reference.md](references/crud-feature-reference.md): file checklist and route table
+- [ui-component-patterns.md](references/ui-component-patterns.md): Basecoat classes, Datastar attributes, dialogs, messages
+- [login-page.md](references/login-page.md): users table, bcrypt, login and logout
+- [dashboard-page.md](references/dashboard-page.md): summary cards
+- [theme-customization.md](references/theme-customization.md): tweakcn themes
+- [observability.md](references/observability.md): what belongs in Grafana
+- [attach-existing-app.md](references/attach-existing-app.md): adding a UI to an existing Java app
