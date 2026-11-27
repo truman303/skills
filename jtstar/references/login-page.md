@@ -114,6 +114,8 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jdbi.v3.core.Jdbi;
+import pkg.features.notifications.Notification.Kind;
+import pkg.features.notifications.Notifier;
 import pkg.web.Message;
 import pkg.web.SessionAuth;
 
@@ -122,7 +124,7 @@ public final class AuthRoutes {
 
     private final UserStore store;
 
-    public AuthRoutes(Jdbi jdbi, Clock clock) {
+    public AuthRoutes(Jdbi jdbi, Clock clock, Notifier notifier) {
         this.store = new UserStore(jdbi);
         if (store.count() == 0) {
             String username = System.getenv("DEV_ADMIN_USERNAME");
@@ -132,6 +134,8 @@ public final class AuthRoutes {
             }
             store.seedAdminIfEmpty(username, BCrypt.withDefaults().hashToString(12, password.toCharArray()), clock);
             LOG.info("created the first user ({})", username);
+            notifier.send(username, Kind.INFO, "Welcome to MyApp",
+                    "Things that happen while you are elsewhere are listed here until you dismiss them.");
         }
     }
 
@@ -182,6 +186,8 @@ public final class AuthRoutes {
 Notes:
 
 - The first user is created only when the table is empty. Log the username, never the password.
+- The first user also gets a welcome notification, so the bell has something in it on the first run. See [notifications.md](notifications.md).
+- `User` is a record because nothing changes a user yet. It is a row read at sign-in. When a feature such as changing a password arrives, make `User` an aggregate class as [domain-modeling.md](domain-modeling.md) describes.
 - `SessionAuth.establish` changes the session id and creates the CSRF token. See [javalin-app.md](javalin-app.md).
 - The log out button in the layout is a form with the hidden `csrf` field. `POST /logout` is not public, so `SessionAuth` checks it.
 - Login is a plain form post. It does not use SSE.

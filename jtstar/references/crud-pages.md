@@ -311,15 +311,16 @@ Appended to the `#toaster` element in the layout. Basecoat watches that element,
 </div>
 ```
 
-## Which notification to use
+## Which message to use
 
 | Situation | Success | Failure |
 |-----------|---------|---------|
 | Form post that redirects (create, edit) | Flash message on the next page | The form again, with errors in `#messages` |
 | Datastar action that stays on the page (delete from the table) | Toast | Message patched into `#messages` |
 | Unexpected exception during a Datastar action | n/a | Message patched into `#messages` by the exception handler |
+| Something that happened while the user was elsewhere | Notification behind the bell | Notification behind the bell |
 
-A toast disappears, so use it only for news the user does not need to act on. Anything they must read stays in `#messages` until they dismiss it.
+A toast disappears, so use it only for news the user does not need to act on. Anything they must read stays in `#messages` until they dismiss it. The bell is in [notifications.md](notifications.md).
 
 ## Routes
 
@@ -529,6 +530,7 @@ Points that matter:
 The inputs that create and edit share.
 
 ```html
+@import pkg.features.items.Item
 @import pkg.features.items.ItemForm
 @param ItemForm form
 @param String csrfToken
@@ -536,7 +538,7 @@ The inputs that create and edit share.
 <input type="hidden" name="csrf" value="${csrfToken}">
 <div class="grid gap-2">
     <label for="name">Name</label>
-    <input id="name" name="name" class="input" type="text" value="${form.name()}" maxlength="100" required autofocus>
+    <input id="name" name="name" class="input" type="text" value="${form.name()}" maxlength="${Item.NAME_MAX}" required autofocus>
 </div>
 <div class="grid gap-2">
     <label for="price">Price</label>
@@ -549,6 +551,47 @@ The inputs that create and edit share.
 ```
 
 The values come from `ItemForm`, which holds strings exactly as typed. After a failed save the user sees `abc` in the price box next to the message that says it is not a number.
+
+`maxlength` reads `Item.NAME_MAX`, so the input and the rule cannot disagree. A template may read a constant from the aggregate. It still never receives an aggregate object.
+
+## `items/guidelines.jte`
+
+The card beside the form on create and edit. It tells the person filling in the form what the fields mean and which rules the save will enforce, before they hit one.
+
+```html
+@import pkg.features.items.Item
+
+<div class="card" data-signals:_guidelines="true">
+    <header>
+        <div class="flex items-center justify-between">
+            <h2>Guidelines</h2>
+            <button type="button" class="btn-sm-icon-ghost" aria-label="Show or hide the guidelines" aria-controls="guidelines-body"
+                    data-attr:aria-expanded="$_guidelines ? 'true' : 'false'"
+                    data-on:click="$_guidelines = !$_guidelines">
+                <svg class="transition-transform" data-class="{ 'rotate-180': $_guidelines }" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+        </div>
+    </header>
+    <section id="guidelines-body" data-show="$_guidelines">
+        <ul class="list-disc pl-4 space-y-2 text-sm text-muted-foreground">
+            <li>Every item needs a name of at most ${Item.NAME_MAX} characters.</li>
+            <li>No two items can share a name. Capital letters make no difference, so "Bolt" and "bolt" count as the same name.</li>
+            <li>The price is a number of zero or more, such as 12.50. It is kept to two decimals.</li>
+            <li>An inactive item stays in the list and is marked Inactive.</li>
+        </ul>
+    </section>
+</div>
+```
+
+How to write the list for a real feature:
+
+- One line for every rule the aggregate checks, and one for every rule that sits beside the store, such as a unique name. If a save can fail for a reason that is not listed here, the list is incomplete.
+- Say what a field means to the business where its name does not. "Active" is clear to the developer and not to the person who has to tick it.
+- Use the user's words. "Capital letters make no difference", not "case-insensitive unique index".
+- Read limits from the aggregate's constants, as `${Item.NAME_MAX}` does.
+- Ask the user to read the list. They know what their colleagues get wrong.
+
+The card collapses and never closes. `data-show` sits on the `<section>`, so the header and its button stay visible and the card can be opened again. `_guidelines` starts with an underscore because the server has no use for it.
 
 ## `items/create.jte`
 
@@ -564,21 +607,29 @@ The values come from `ItemForm`, which holds strings exactly as typed. After a f
     content = @`
         @template.fragments.messages(messages = page.messages())
 
-        <form method="post" action="${page.action()}" class="form card max-w-xl">
-            <header><h2>${page.heading()}</h2></header>
-            <section class="grid gap-4">
-                @template.items.fields(form = page.form(), csrfToken = page.csrfToken())
-            </section>
-            <footer class="flex gap-2">
-                <button type="submit" class="btn-primary">Create</button>
-                <a href="/items" class="btn-outline">Cancel</a>
-            </footer>
-        </form>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <form method="post" action="${page.action()}" class="form card lg:col-span-8">
+                <header><h2>${page.heading()}</h2></header>
+                <section class="grid gap-4">
+                    @template.items.fields(form = page.form(), csrfToken = page.csrfToken())
+                </section>
+                <footer class="flex gap-2">
+                    <button type="submit" class="btn-primary">Create</button>
+                    <a href="/items" class="btn-outline">Cancel</a>
+                </footer>
+            </form>
+
+            <div class="lg:col-span-4 space-y-6">
+                @template.items.guidelines()
+            </div>
+        </div>
     `
 )
 ```
 
 A plain form. The browser posts it, the server redirects, the back button works. Do not put `data-on:submit` on it: Datastar prevents the default on a submit handler, and the form would stop posting.
+
+The form takes eight of twelve columns and the side column four. On a narrow screen the side column drops below the form. `items-start` stops the shorter column from stretching to the height of the taller one.
 
 ## `items/edit.jte`
 
@@ -594,7 +645,7 @@ A plain form. The browser posts it, the server redirects, the back button works.
     content = @`
         @template.fragments.messages(messages = page.messages())
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <form method="post" action="${page.action()}" class="form card lg:col-span-8"
                   data-signals:_dirty="${!page.messages().isEmpty()}" data-on:input="$_dirty = true">
                 <header><h2>${page.heading()}</h2></header>
@@ -607,18 +658,22 @@ A plain form. The browser posts it, the server redirects, the back button works.
                 </footer>
             </form>
 
-            <div class="card lg:col-span-4 border-destructive/40">
-                <header>
-                    <h2 class="text-destructive">Danger zone</h2>
-                    <p>Deleting an item cannot be undone.</p>
-                </header>
-                <footer>
-                    <form method="post" action="/items/${page.itemId()}/delete"
-                          onsubmit="return confirm('Delete this item?')">
-                        <input type="hidden" name="csrf" value="${page.csrfToken()}">
-                        <button type="submit" class="btn-destructive">Delete item</button>
-                    </form>
-                </footer>
+            <div class="lg:col-span-4 space-y-6">
+                @template.items.guidelines()
+
+                <div class="card border-destructive/40">
+                    <header>
+                        <h2 class="text-destructive">Danger zone</h2>
+                        <p>Deleting an item cannot be undone.</p>
+                    </header>
+                    <footer>
+                        <form method="post" action="/items/${page.itemId()}/delete"
+                              onsubmit="return confirm('Delete this item?')">
+                            <input type="hidden" name="csrf" value="${page.csrfToken()}">
+                            <button type="submit" class="btn-destructive">Delete item</button>
+                        </form>
+                    </footer>
+                </div>
             </div>
         </div>
     `
@@ -626,6 +681,8 @@ A plain form. The browser posts it, the server redirects, the back button works.
 ```
 
 Save stays disabled until something changes. `_dirty` starts `true` when the page is showing errors, because then the form already holds unsaved input.
+
+The side column holds the same guidelines as the create page, then the danger zone.
 
 ## `items/details.jte`
 
@@ -668,3 +725,5 @@ Before calling the feature done, with at least 25 rows in the table:
 5. Go to the last page and delete every row on it. The table lands on the new last page.
 6. Open `/items?page=2` directly. Page 2 loads.
 7. Save an edit with a bad value. The form comes back with the message and with what was typed.
+8. Open the create page. The Guidelines card sits beside the form. Its button folds the list away and brings it back, and the card itself stays.
+9. Try to break each rule the Guidelines card lists. Every one is refused with a message that matches the card.

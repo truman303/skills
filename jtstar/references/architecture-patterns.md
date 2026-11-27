@@ -4,13 +4,14 @@
 
 ## Package layout
 
-Organize by feature. A feature package holds everything about one aggregate: the domain record, its store, its routes and its page records.
+Organize by feature. A feature package holds everything about one aggregate: the aggregate class, its store, its routes and its page records.
 
 ```
 pkg/
 ├── App.java                  # composition root
 ├── Result.java
 ├── ErrorDetail.java
+├── AggregateRoot.java        # base class of every aggregate root
 ├── DomainEvents.java         # only when a feature raises events
 ├── web/                      # HTTP kit used by every feature
 │   ├── JavalinResponseAdapter.java
@@ -27,6 +28,7 @@ pkg/
     │   └── UserStore.java
     ├── dashboard/
     │   └── DashboardRoutes.java
+    ├── notifications/        # the bell: Notification, its store, Notifier, routes
     └── items/
         ├── Item.java         # aggregate root
         ├── ItemId.java       # typed id
@@ -134,7 +136,8 @@ Result<Item> result = form.parse()
 
 Aggregates, typed ids, form records, stores and domain events are in [domain-modeling.md](domain-modeling.md). The short version:
 
-- The aggregate root is a record. A static factory and methods on the root return `Result`.
+- The aggregate root is a class that extends `AggregateRoot`. Its state is private, its constructor is private, and it has no setters. A static factory and methods on the root return `Result`.
+- Records are for things with no identity: typed ids, value objects, events, form records and page records.
 - Ids are typed records, such as `record ItemId(UUID value)`.
 - A form record turns posted strings into types before the aggregate sees them.
 - One store per aggregate, saving the whole aggregate in one transaction.
@@ -176,5 +179,6 @@ Details and code: [datastar-sse.md](datastar-sse.md) and [ui-component-patterns.
 | Table search, paging, page size | Signals plus `@get` of the table fragment |
 | Delete from a table row | `@post`, then patch the table and append a toast |
 | Progress of something running | `data-init` opens a live SSE view |
+| News for a user who was elsewhere | `notifier.send(...)`, shown behind the bell. See [notifications.md](notifications.md) |
 | Open or close a dialog, toggle a section | Signal or plain DOM call in `data-on:click` |
 | Rates and time-series | Prometheus and Grafana. See [observability.md](observability.md) |

@@ -103,10 +103,12 @@ MyApp/
 │   ├── App.java
 │   ├── Result.java
 │   ├── ErrorDetail.java
+│   ├── AggregateRoot.java
 │   ├── web/                      # Sse, Signals, TableState, Message, Templates, SessionAuth, ExceptionMapping
 │   └── features/
 │       ├── auth/
 │       ├── dashboard/
+│       ├── notifications/
 │       └── items/
 ├── src/main/jte/
 │   ├── layout/                   # page.jte, landing.jte
@@ -114,10 +116,12 @@ MyApp/
 │   ├── error.jte
 │   ├── auth/
 │   ├── dashboard/
+│   ├── notifications/            # bell.jte, count.jte, panel.jte
 │   └── items/
 ├── src/main/resources/
 │   ├── public/css/
 │   ├── public/js/
+│   ├── public/fonts/
 │   ├── public/images/
 │   ├── db/migration/
 │   └── log4j2.xml
@@ -135,10 +139,18 @@ public/
 ├── css/site.css
 ├── css/landing.css
 ├── css/tailwind-output.css      # generate, see below
-└── js/basecoat.all.min.js
-    js/datastar.js
-    js/site.js
+├── js/basecoat.all.min.js
+├── js/datastar.js
+├── js/site.js
+├── fonts/barlow/barlow-v13-latin-regular.woff2
+├── fonts/poppins/poppins-v24-latin-regular.woff2
+├── fonts/lora/lora-v37-latin-regular.woff2
+└── fonts/fira-code/fira-code-v27-latin-regular.woff2
 ```
+
+Copy the `fonts/` folder with the rest. `theme.css` declares the four families with `@font-face` rules that point at `/fonts/...`, and the default theme sets Poppins as the sans font. Without the files every page logs a 404 for the font and falls back to a system font.
+
+If the user pastes a theme that names other fonts, add those `.woff2` files under `public/fonts/` and a matching `@font-face` rule in `theme.css`. Do not link a font CDN: the app must work with no internet access.
 
 Javalin serves this tree at `/` via `config.staticFiles.add("/public", Location.CLASSPATH)`.
 
@@ -151,11 +163,9 @@ Generate Tailwind output (Tailwind v4 standalone CLI):
 
 `site.css` imports Tailwind, Basecoat and the theme, so `tailwind-output.css` is the one stylesheet the layout links. Tailwind scans the `.jte` files for class names, so run it again, or keep `--watch` running, after adding classes to a template. Commit `tailwind-output.css` so the first run works without the watcher.
 
-theme.css references Barlow/Poppins under `/fonts/...`. Either add those files or let the browser fall back. Do not block scaffolding on webfonts.
-
 ## Flyway
 
-`src/main/resources/db/migration/V001__users.sql` for the session user table. Feature tables get their own `V00n__*.sql`. `App` runs `Flyway.configure().dataSource(ds).load().migrate()` at boot.
+`src/main/resources/db/migration/V001__users.sql` for the session user table and `V002__notifications.sql` for the bell. Feature tables get their own `V00n__*.sql`, starting at `V003`. `App` runs `Flyway.configure().dataSource(ds).load().migrate()` at boot.
 
 Migrations run when the app starts. The user never types a migration command.
 

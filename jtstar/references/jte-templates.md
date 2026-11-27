@@ -47,8 +47,8 @@ A layout takes the page body as a `gg.jte.Content` parameter. This is the sideba
             </header>
             <section class="scrollbar ml-1">
                 <ul>
-                    <li><a href="/dashboard" aria-current="${currentPage.equals("Dashboard") ? "page" : "false"}">Dashboard</a></li>
-                    <li><a href="/items" aria-current="${currentPage.equals("Items") ? "page" : "false"}">Items</a></li>
+                    <li><a href="/dashboard" data-ignore-current aria-current="${currentPage.equals("Dashboard") ? "page" : "false"}">Dashboard</a></li>
+                    <li><a href="/items" data-ignore-current aria-current="${currentPage.equals("Items") ? "page" : "false"}">Items</a></li>
                 </ul>
             </section>
         </nav>
@@ -56,13 +56,20 @@ A layout takes the page body as a `gg.jte.Content` parameter. This is the sideba
     <main class="sidebar-content min-h-screen">
         <header class="border-b border-border px-6 py-4">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold">${title}</h2>
+                <div class="flex items-center gap-3">
+                    <button type="button" class="btn-icon-outline" aria-label="Toggle sidebar"
+                            data-on:click="document.dispatchEvent(new CustomEvent('basecoat:sidebar'))">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                    </button>
+                    <h2 class="text-lg font-semibold">${title}</h2>
+                </div>
                 <div class="flex items-center gap-3">
                     <button type="button" class="btn-icon-outline" aria-label="Toggle dark mode"
                             data-on:click="localStorage.setItem('themeMode', document.documentElement.classList.toggle('dark') ? 'dark' : 'light')">
                         <svg class="dark:hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
                         <svg class="hidden dark:block" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
                     </button>
+                    @template.notifications.bell()
                     <span class="text-sm text-muted-foreground">${userName}</span>
                     <form method="post" action="/logout">
                         <input type="hidden" name="csrf" value="${csrfToken}">
@@ -87,6 +94,9 @@ Notes on the layout:
 - The dark-mode toggle needs no signal. It flips a class and stores the choice. The moon shows in light mode and the sun in dark mode through `dark:hidden` and `hidden dark:block`.
 - `<body>` declares no signals. The user's name and the page title are printed by the server. A signal holding them would add nothing, and text pasted into a `data-signals` object breaks on the first apostrophe.
 - `#toaster` is where SSE toasts are appended. Every page gets one through the layout.
+- Every sidebar link carries `data-ignore-current`. Without it Basecoat's sidebar script sets `aria-current` itself, by comparing each link's path with the address bar, and it removes the server's value. `/items/new` is not `/items`, so the Items link would lose its highlight on the create and edit pages. With the attribute the server's `currentPage` decides.
+- The first button in the top bar opens and closes the sidebar. On a narrow screen the sidebar starts closed, and this button is the only way to reach the navigation.
+- `@template.notifications.bell()` is the notification bell. It takes no parameters and fills itself over SSE. See [notifications.md](notifications.md).
 - Log out is a form, because it changes state and needs the CSRF field.
 
 A page calls the layout and passes its body as a content block between `` @` `` and `` ` ``:
@@ -112,9 +122,9 @@ Use named arguments on `@template` calls. Complete pages are in [crud-pages.md](
 
 Ask which one during discovery. Only the layout file differs.
 
-**Top nav.** Remove the `<aside>`. Put the brand and the section links in a `<nav class="border-b border-border">` across the top, with the dark-mode button, user name and log out at the right. Put the content in `<main class="max-w-7xl mx-auto p-6">`.
+**Top nav.** Remove the `<aside>` and the sidebar button. Put the brand and the section links in a `<nav class="border-b border-border">` across the top, with the dark-mode button, the bell, user name and log out at the right. Put the content in `<main class="max-w-7xl mx-auto p-6">`.
 
-**Creative.** A thin header with the app name, dark-mode button and log out. No section links. Pages link to each other from their own content. Suits a single-purpose app.
+**Minimal header.** A thin header with the app name, dark-mode button, the bell and log out. No section links. Pages link to each other from their own content. Suits a single-purpose app.
 
 **Landing** (`layout/landing.jte`), for `/login`. No sidebar and no header. It links `landing.css` after `tailwind-output.css` and centres one card. See [login-page.md](login-page.md).
 
@@ -127,7 +137,7 @@ A fragment is a template whose root element has an `id`. It is used two ways:
 
 Because both paths run the same file, the first render and every later patch produce the same markup.
 
-Shared fragments live in `src/main/jte/fragments/`: `messages.jte` and `toast.jte`. Their source is in [crud-pages.md](crud-pages.md).
+Shared fragments live in `src/main/jte/fragments/`: `messages.jte` and `toast.jte`. Their source is in [crud-pages.md](crud-pages.md). The bell's fragments live in `src/main/jte/notifications/`.
 
 ## What `${}` prints
 

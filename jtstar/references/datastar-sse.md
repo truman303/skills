@@ -137,7 +137,12 @@ public final class Sse {
 
     /** Morphs the element whose id matches the template's root element. */
     public Sse patch(String template, Map<String, Object> params) {
-        events.send(PatchElements.builder().data(templates.render(template, params)).build());
+        return patchHtml(templates.render(template, params));
+    }
+
+    /** Morphs HTML that is already rendered. Each top-level element replaces the one on the page with the same id. */
+    public Sse patchHtml(String html) {
+        events.send(PatchElements.builder().data(html).build());
         return this;
     }
 
@@ -455,7 +460,9 @@ Rules for live views:
 - Turn on virtual threads (`config.concurrency.useVirtualThreads = true`). Each open stream parks one thread in `Thread.sleep`, which costs nothing on a virtual thread.
 - Read a projection the server already keeps, on an interval. 500 ms is enough for a person watching a counter. Add a push mechanism only when polling is measurably too slow.
 - Keep the heartbeat. The server learns that a tab closed only when a write fails. A view whose HTML stops changing would otherwise hold its thread forever.
-- One live view per page. Wrap everything that moves in one fragment.
+- One live view per page, on top of the notification bell that the layout opens on every page. Wrap everything that moves in one fragment.
+
+The bell in [notifications.md](notifications.md) is a live view too. Its supplier returns two fragments joined into one string, and each lands on the element with its id.
 
 ## Redirecting from a Datastar request
 

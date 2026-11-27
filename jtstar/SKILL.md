@@ -31,13 +31,14 @@ Work through the phases with the user. Do not skip the checkpoints.
 | Templates | JTE 3 | Type-safe `.jte` files compiled to Java |
 | Reactivity | Datastar v1.0.5 + `datastar-java-sdk-core` 1.0.1 | The SDK has no Javalin module. The skill supplies the adapter. |
 | Components and CSS | Basecoat UI + Tailwind v4 | Copied from `assets/` |
-| Persistence | Jdbi 3 + HikariCP + PostgreSQL | Hand-written SQL in each store, rows mapped to records. No ORM. |
+| Persistence | Jdbi 3 + HikariCP + PostgreSQL | Hand-written SQL in each store, rows mapped by hand. No ORM. |
 | Schema | Flyway | Runs at startup |
-| Domain | Java 21 records and sealed types | Aggregates, typed ids, `Result<T>` for expected failures |
+| Domain | Plain Java 21 | Aggregates and entities are classes. Ids, value objects and events are records. `Result<T>` for expected failures. |
 | Auth | Session cookie + bcrypt | CSRF protection included |
+| Notifications | A bell in the top bar, fed over SSE | One table, no extra dependency |
 | Logging | Log4j2 | |
 
-Java 21. Frontend libraries are bundled locally, so the app works with no internet access.
+Java 21. Frontend libraries and fonts are bundled locally, so the app works with no internet access.
 
 The browser library and the Java SDK are a matched pair. Use the bundled `assets/js/datastar.js` and the SDK version in [project-scaffolding.md](references/project-scaffolding.md). Do not swap either for "latest" without rerunning the browser checks in [crud-pages.md](references/crud-pages.md).
 
@@ -47,7 +48,7 @@ The browser library and the Java SDK are a matched pair. Use the bundled `assets
 
 | Folder | Contents | When |
 |--------|----------|------|
-| `assets/` | CSS (Basecoat, Tailwind entry, theme, landing) and JS (Basecoat, Datastar, site) | Copied into `src/main/resources/public/` in Phase 2 |
+| `assets/` | CSS (Basecoat, Tailwind entry, theme, landing), JS (Basecoat, Datastar, site) and the fonts the theme names | Copied into `src/main/resources/public/` in Phase 2 |
 | `scripts/` | `start-dev-environment.sh` | Copied in Phase 2, greenfield only |
 | `references/` | Implementation docs with complete code | Read as each step needs them. Not copied. |
 
@@ -98,6 +99,8 @@ Then ask the questions that decide the shape of the domain code. Skip any the us
 
 If every answer is no, the feature is a flat aggregate like `Item` in the references. That is common and fine. See [domain-modeling.md](references/domain-modeling.md) for each shape.
 
+Also ask: *"What do people get wrong when they fill this in, and is there anything a field name does not make obvious?"* The answer goes into the Guidelines card beside the create and edit forms.
+
 ### 1D. Theme and layout
 
 The default theme lives in `assets/css/theme.css`. Offer, in one message:
@@ -122,9 +125,9 @@ Ask: *"Sidebar, top navigation, or a minimal header?"*
 > 1. *Javalin 7, JTE, Datastar and Basecoat on Java 21*
 > 2. *PostgreSQL in Docker, credentials in `.env`*
 > 3. *Session login with a first admin user from `.env`*
-> 4. *A dashboard with one summary card*
-> 5. *Products (name, price, active): list with live search and paging, create, edit, details, delete*
-> 6. *Sidebar navigation*
+> 4. *Sidebar navigation, and a top bar with a dark-mode switch and a notification bell*
+> 5. *A dashboard with one summary card*
+> 6. *Products (name, price, active): list with live search and paging, create, edit, details, delete. Create and edit carry a Guidelines card that explains the rules.*
 >
 > *Sound good?"*
 
@@ -138,12 +141,13 @@ Work in order. Substitute `MyApp`, `myapp` and `pkg` everywhere.
 
 1. Gradle Java 21 project and packages. [project-scaffolding.md](references/project-scaffolding.md)
 2. `.env`, Docker Postgres, and `scripts/start-dev-environment.sh`. [docker-setup.md](references/docker-setup.md)
-3. Copy `assets/` into `src/main/resources/public/`. Build `tailwind-output.css` with the Tailwind CLI.
-4. `Result` and `ErrorDetail`. [architecture-patterns.md](references/architecture-patterns.md)
+3. Copy `assets/` into `src/main/resources/public/`, fonts included. Build `tailwind-output.css` with the Tailwind CLI.
+4. `Result` and `ErrorDetail`, from [architecture-patterns.md](references/architecture-patterns.md). `AggregateRoot`, from [domain-modeling.md](references/domain-modeling.md).
 5. The `pkg.web` kit: `JavalinResponseAdapter`, `Sse`, `Signals`, `TableState`, `Message`, `Templates`. [datastar-sse.md](references/datastar-sse.md)
 6. `App.java`, `SessionAuth`, `ExceptionMapping`, `error.jte`. [javalin-app.md](references/javalin-app.md)
 7. The layout for the chosen navigation, plus `fragments/messages.jte` and `fragments/toast.jte`. [jte-templates.md](references/jte-templates.md) and [crud-pages.md](references/crud-pages.md)
-8. Login and dashboard. [login-page.md](references/login-page.md) and [dashboard-page.md](references/dashboard-page.md)
+8. The notification bell: its feature package, its three templates and its migration. [notifications.md](references/notifications.md)
+9. Login and dashboard. [login-page.md](references/login-page.md) and [dashboard-page.md](references/dashboard-page.md)
 
 Run `./gradlew build` before going on. JTE templates compile during the build, so a template error shows up here.
 
@@ -158,6 +162,7 @@ Run `./gradlew build` before going on. JTE templates compile during the build, s
 > 2. `./gradlew run`
 > 3. *Open http://localhost:8080*
 > 4. *Sign in with `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` from `.env`*
+> 5. *The bell in the top bar should show 1. Open it and read the welcome notification.*
 >
 > *Tell me when you're in."*
 
@@ -170,7 +175,7 @@ Wait for confirmation.
 ```
 src/main/java/pkg/features/items/
   ItemId.java        # typed id
-  Item.java          # aggregate root: factory, methods, rules
+  Item.java          # aggregate root, a class: factory, methods, rules
   ItemForm.java      # posted strings, parsed to types
   ItemStore.java     # Jdbi
   ItemPages.java     # page records the templates print
@@ -179,11 +184,12 @@ src/main/jte/items/
   index.jte          # signals, toolbar, delete dialog
   table.jte          # the fragment SSE patches
   fields.jte         # inputs shared by create and edit
+  guidelines.jte     # the rules in the user's words, beside both forms
   create.jte
   edit.jte
   details.jte
 src/main/resources/db/migration/
-  V002__items.sql
+  V003__items.sql
 ```
 
 Build it in this order:
@@ -197,6 +203,7 @@ The index page must behave like this:
 - Search, paging and page size update the table without reloading the page.
 - Delete asks for confirmation, updates the table and shows a toast.
 - Create and edit are ordinary forms that redirect with a flash message.
+- Create and edit show a Guidelines card beside the form. It lists every rule a save can fail on, in the user's words. Draft it from the aggregate and from what the user said in discovery, then ask the user to read it.
 
 The full check is the list at the end of [crud-pages.md](references/crud-pages.md). Run it in a browser yourself if you can drive one. If you cannot, give the user the list and ask them to run it. A build that compiles proves nothing about whether a click reaches the server.
 
@@ -204,7 +211,9 @@ The full check is the list at the end of [crud-pages.md](references/crud-pages.m
 
 ## Phase 5: Handoff
 
-Tell the user what they have: login, dashboard, one complete feature. Then how to add the next one: copy the feature package and template folder, rename, write the migration, register in `App.java`, add the nav link and the card.
+Tell the user what they have: login, dashboard, the notification bell, one complete feature. Then how to add the next one: copy the feature package and template folder, rename, write the migration, rewrite the Guidelines card for the new rules, register in `App.java`, add the nav link and the card.
+
+Nothing sends notifications yet apart from the welcome. Ask which events in their app a user would want to hear about later, and wire `notifier.send(...)` there.
 
 The Tailwind watcher rebuilds the stylesheet as templates change:
 
@@ -220,13 +229,14 @@ The Tailwind watcher rebuilds the stylesheet as templates change:
 2. **Datastar updates a page in place.** Table search, paging, page size and row actions fetch a fragment over SSE and morph it in. They never reload the page. A pager built from links is a bug.
 3. **The server holds the state.** Signals carry what the user is typing and the few values the server needs back. Rows, counts and messages are HTML.
 4. **One fragment, two uses.** The template that renders a table inside the page is the same one an SSE handler patches, so the first render and every update match.
-5. **Aggregates own the rules.** An aggregate root is a record whose factory and methods return `Result`. Anything that exists is valid. Routes and services sequence work and hold no rules.
+5. **Aggregates own the rules.** An aggregate root is a class with private state, a private constructor and no setters. Its factory and methods return `Result`, so anything that exists is valid. Records are for ids, value objects, events, forms and page data. Routes and services sequence work and hold no rules.
 6. **Typed at the edge.** A form record turns posted strings into types. The aggregate never parses text.
 7. **One store per aggregate.** It loads and saves the whole aggregate in one transaction. The SQL is written out in the store.
 8. **Events only with a consumer.** Add domain events when a change must cause something elsewhere. Not before.
 9. **Expected failures are values.** Validation, not found and rule violations are `Result.Err`. Exceptions are for what nobody planned.
 10. **Features, not layers.** `features/items/` holds everything about items.
 11. **No user text inside a Datastar expression.** Pass it through a `data-*` attribute or a JSON-encoded signal.
+12. **Forms explain themselves.** Every create and edit page has a Guidelines card. A user should not have to fail a save to learn a rule.
 
 ## What goes where
 
@@ -237,6 +247,7 @@ The Tailwind watcher rebuilds the stylesheet as templates change:
 | Table search, paging, page size | Signals and `@get` of the table fragment |
 | Row actions such as delete | `@post`, then patch the table and append a toast |
 | Progress of a running job | A live SSE view opened with `data-init` |
+| News for a user who was elsewhere | `notifier.send(...)`, shown behind the bell |
 | Dialogs and toggles | A signal or a DOM call in `data-on:click` |
 | Rates and time-series charts | Prometheus and Grafana. Link to them. |
 
@@ -254,11 +265,12 @@ The Tailwind watcher rebuilds the stylesheet as templates change:
 - [project-scaffolding.md](references/project-scaffolding.md): Gradle, versions, static files, Tailwind
 - [docker-setup.md](references/docker-setup.md): Postgres in Docker, `.env`
 - [architecture-patterns.md](references/architecture-patterns.md): package layout, `Result`, who calls whom
-- [domain-modeling.md](references/domain-modeling.md): aggregates, entities, value objects, typed ids, stores, domain events
+- [domain-modeling.md](references/domain-modeling.md): aggregates and entities as classes, value objects and typed ids as records, stores, domain events
 - [javalin-app.md](references/javalin-app.md): `App.java`, sessions, CSRF, exception handling
 - [datastar-sse.md](references/datastar-sse.md): the SSE kit, signals, table state, live views
 - [jte-templates.md](references/jte-templates.md): layout, fragments, JTE syntax traps
-- [crud-pages.md](references/crud-pages.md): every template and route for one feature
+- [crud-pages.md](references/crud-pages.md): every template and route for one feature, including the Guidelines card
+- [notifications.md](references/notifications.md): the bell in the top bar, its stream, and how features send to it
 - [crud-feature-reference.md](references/crud-feature-reference.md): file checklist and route table
 - [ui-component-patterns.md](references/ui-component-patterns.md): Basecoat classes, Datastar attributes, dialogs, messages
 - [login-page.md](references/login-page.md): users table, bcrypt, login and logout

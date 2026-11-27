@@ -174,10 +174,18 @@ Pick the first that applies:
 
 Never ship a UI that changes data with sign-in switched off.
 
+## The notification bell
+
+The layout in [jte-templates.md](jte-templates.md) includes the bell, and the bell needs a table of its own. An attached UI usually has no table, so pick the first that applies:
+
+1. The host already keeps per-user notifications. Keep the bell and the routes from [notifications.md](notifications.md), and have the routes read and update through the host's service in place of `NotificationStore`.
+2. The user wants the bell and agrees to one new table. Raise it as a schema change, then build the feature as written.
+3. Otherwise remove `@template.notifications.bell()` from the layout and skip the feature.
+
 ## First screens
 
 1. A dashboard with a few counts the host can already answer, plus links to the screens.
-2. The one screen the user asked for. A list screen follows [crud-pages.md](crud-pages.md) with the host's query in place of the store. An action with progress follows the live view in [datastar-sse.md](datastar-sse.md).
+2. The one screen the user asked for. A list screen follows [crud-pages.md](crud-pages.md) with the host's query in place of the store. An action with progress follows the live view in [datastar-sse.md](datastar-sse.md). A screen with a form gets a Guidelines card, and its text states the rules the host's service enforces.
 
 Get one screen in front of the user before building the second.
 

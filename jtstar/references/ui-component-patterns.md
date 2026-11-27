@@ -91,6 +91,7 @@ A toast is for good news about an action that kept the user on the page. `sse.to
 | Deleted from a table row | Toast |
 | Validation failed | `#messages` on the form page |
 | Something the user must read or act on | `#messages`, never a toast |
+| Something that happened while the user was elsewhere | A notification behind the bell |
 
 ## Confirm dialog
 
@@ -143,10 +144,10 @@ Save is disabled until a field changes. When the form is shown again after a fai
 
 ## Page layouts
 
-Two columns, main content and a side panel:
+Two columns, main content and a side column. Create and edit pages use it, with the form on the left and the Guidelines card on the right:
 
 ```html
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
     <div class="lg:col-span-8">...</div>
     <div class="lg:col-span-4 space-y-6">...</div>
 </div>
@@ -162,7 +163,39 @@ Card:
 </div>
 ```
 
-To make a card collapsible, put `data-show` on the `<section>`. If it goes on the card, the toggle button disappears with it.
+## Guidelines card
+
+Every create and edit page has one in the side column. It lists what each field means and every rule the save enforces, so the user learns the rules before breaking one.
+
+```html
+<div class="card" data-signals:_guidelines="true">
+    <header>
+        <div class="flex items-center justify-between">
+            <h2>Guidelines</h2>
+            <button type="button" class="btn-sm-icon-ghost" aria-label="Show or hide the guidelines" aria-controls="guidelines-body"
+                    data-attr:aria-expanded="$_guidelines ? 'true' : 'false'"
+                    data-on:click="$_guidelines = !$_guidelines">
+                <svg class="transition-transform" data-class="{ 'rotate-180': $_guidelines }" ...>...</svg>
+            </button>
+        </div>
+    </header>
+    <section id="guidelines-body" data-show="$_guidelines">
+        <ul class="list-disc pl-4 space-y-2 text-sm text-muted-foreground">
+            <li>...</li>
+        </ul>
+    </section>
+</div>
+```
+
+- The card collapses and never closes. Put `data-show` on the `<section>`. If it goes on the card, the toggle button disappears with it and the user cannot bring the card back.
+- `data-attr:aria-expanded` needs the strings `'true'` and `'false'`. Given a boolean, Datastar adds or removes the attribute and a screen reader hears nothing useful.
+- One fragment per feature, `items/guidelines.jte`, included by both create and edit.
+
+The full fragment and the rules for writing its text are in [crud-pages.md](crud-pages.md).
+
+## Notification bell
+
+The bell in the top bar is a Basecoat `popover`: a wrapper with class `popover`, a `<button>` and a `[data-popover]` element as its direct children. Basecoat opens it, closes it on an outside click, and keeps `aria-expanded` right. It needs no signal. Basecoat's own Escape handling works only while the focus is inside the popover, so the bell adds one `data-on:keydown__window` line to close on Escape from anywhere. The markup and the stream behind it are in [notifications.md](notifications.md).
 
 ## Status badges
 
@@ -187,4 +220,4 @@ Basecoat's dropdown needs its ARIA attributes to open and close: `aria-haspopup=
 - Every icon-only button has an `aria-label`.
 - Every input has a `<label for>` or an `aria-label`.
 - An error message uses `role="alert"`, a status message `role="status"`. The message and toast fragments already do this.
-- The current nav link carries `aria-current="page"`. The sidebar styles depend on it.
+- The current nav link carries `aria-current="page"`. The sidebar styles depend on it. Every sidebar link also carries `data-ignore-current`, so that Basecoat leaves the server's value alone.

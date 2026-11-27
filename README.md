@@ -32,7 +32,7 @@ npx skills add https://github.com/truman303/skills --skill razorstar
 
 [JtStar Skill](jtstar/SKILL.md)
 
-Guides the user through building a server-rendered Java web application with Javalin 7, JTE templates, Jdbi on a PostgreSQL database, Datastar for UI reactivity and real-time updates via SSE, and Basecoat UI components on Tailwind CSS. The domain code follows a small DDD shape: aggregates as records, typed ids, and domain events when something consumes them.
+Guides the user through building a server-rendered Java web application with Javalin 7, JTE templates, Jdbi on a PostgreSQL database, Datastar for UI reactivity and real-time updates via SSE, and Basecoat UI components on Tailwind CSS. The domain code follows a small DDD shape: aggregates as classes that guard their own rules, records for typed ids, value objects and events, and domain events only when something consumes them. Every app gets a notification bell in the top bar, and every form gets a Guidelines card that states its rules.
 
 Use when the user asks to create a jtstar app, a Javalin+JTE+Datastar app, a Java CRUD app without a SPA, Spring or Hibernate, or a web UI for an existing Java application.
 

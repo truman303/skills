@@ -27,6 +27,9 @@ import pkg.features.auth.AuthRoutes;
 import pkg.features.dashboard.DashboardRoutes;
 import pkg.features.items.ItemRoutes;
 import pkg.features.items.ItemStore;
+import pkg.features.notifications.NotificationRoutes;
+import pkg.features.notifications.NotificationStore;
+import pkg.features.notifications.Notifier;
 import pkg.web.ExceptionMapping;
 import pkg.web.SessionAuth;
 import pkg.web.Templates;
@@ -49,8 +52,12 @@ public final class App {
                 : TemplateEngine.createPrecompiled(ContentType.Html);
         Templates templates = new Templates(engine);
 
+        NotificationStore notificationStore = new NotificationStore(jdbi);
+        Notifier notifier = new Notifier(notificationStore, clock);
+        NotificationRoutes notifications = new NotificationRoutes(notificationStore, clock, templates);
+
         ItemStore itemStore = new ItemStore(jdbi);
-        AuthRoutes auth = new AuthRoutes(jdbi, clock);
+        AuthRoutes auth = new AuthRoutes(jdbi, clock, notifier);
         DashboardRoutes dashboard = new DashboardRoutes(itemStore);
         ItemRoutes items = new ItemRoutes(itemStore, clock, templates);
 
@@ -67,6 +74,7 @@ public final class App {
             ExceptionMapping.install(config.routes, templates);
             SessionAuth.install(config.routes, templates);
             auth.register(config.routes);
+            notifications.register(config.routes);
             dashboard.register(config.routes);
             items.register(config.routes);
             config.routes.get("/", ctx -> ctx.redirect("/dashboard"));
@@ -88,7 +96,7 @@ What to know about Javalin 7:
 
 - Routes are registered inside `Javalin.create(config -> { ... })` through `config.routes`. The `app.get(...)` style from older versions is gone.
 - A route class takes `io.javalin.router.JavalinDefaultRoutingApi` in its `register` method. The type has no generic parameter.
-- `config.concurrency.useVirtualThreads = true` gives each request a virtual thread. Live SSE views depend on it.
+- `config.concurrency.useVirtualThreads = true` gives each request a virtual thread. Live SSE views depend on it, and the notification bell keeps one open on every visible page.
 - Sessions run on a Jetty `SessionHandler` from `org.eclipse.jetty.ee10.servlet`, installed as shown. The cookie flags are set on it.
 
 ## Template engine
@@ -314,3 +322,4 @@ Register `/items/new` and `/items/table` before `/items/{id}`, so that `new` and
 1. Construct its store and its routes class in `App.main`.
 2. Call `feature.register(config.routes)` next to the others.
 3. Add a nav link to the layout and a card to the dashboard.
+4. If it should tell users about things that happen in the background, pass it the `notifier`.
