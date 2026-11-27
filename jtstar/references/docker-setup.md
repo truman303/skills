@@ -51,7 +51,13 @@ If port 5432 is taken on the user's machine, change the host side of the mapping
 ```
 .env
 db/
+.gradle/
+build/
+tailwindcss
+jte-classes/
 ```
+
+`tailwindcss` is the Tailwind binary in the project root. `jte-classes/` is where JTE compiles templates when the app runs in dev.
 
 ## Startup script
 

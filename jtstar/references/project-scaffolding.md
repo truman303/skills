@@ -94,8 +94,10 @@ The Datastar SDK brings Jackson, which `Signals` uses. There is no separate JSON
 
 ```
 MyApp/
+├── README.md                     # see readme-pattern.md
 ├── build.gradle
 ├── gradle.properties
+├── tailwindcss                   # Tailwind standalone CLI, gitignored
 ├── scripts/start-dev-environment.sh
 ├── docker-compose.yml
 ├── .env                          # gitignored
@@ -154,14 +156,16 @@ If the user pastes a theme that names other fonts, add those `.woff2` files unde
 
 Javalin serves this tree at `/` via `config.staticFiles.add("/public", Location.CLASSPATH)`.
 
-Generate Tailwind output (Tailwind v4 standalone CLI):
+Generate Tailwind output with the Tailwind v4 standalone CLI. Keep the binary in the project root as `tailwindcss` and gitignore it. The README tells the next person where to download it.
 
 ```bash
 ./tailwindcss -i src/main/resources/public/css/site.css \
   -o src/main/resources/public/css/tailwind-output.css
 ```
 
-`site.css` imports Tailwind, Basecoat and the theme, so `tailwind-output.css` is the one stylesheet the layout links. Tailwind scans the `.jte` files for class names, so run it again, or keep `--watch` running, after adding classes to a template. Commit `tailwind-output.css` so the first run works without the watcher.
+`site.css` imports Tailwind, Basecoat and the theme, so `tailwind-output.css` is the one stylesheet the layout links. Tailwind scans the `.jte` files for class names, so run it again, or keep `--watch` running, after adding classes to a template. Then restart the app. `./gradlew run` copies `src/main/resources` into `build/` and the app serves the copy, so a rebuilt stylesheet reaches the browser only after the next start. Commit `tailwind-output.css` so a fresh clone runs without the binary.
+
+Both commands go into the app's README. See [readme-pattern.md](readme-pattern.md).
 
 ## Flyway
 

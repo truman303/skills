@@ -128,6 +128,7 @@ Ask: *"Sidebar, top navigation, or a minimal header?"*
 > 4. *Sidebar navigation, and a top bar with a dark-mode switch and a notification bell*
 > 5. *A dashboard with one summary card*
 > 6. *Products (name, price, active): list with live search and paging, create, edit, details, delete. Create and edit carry a Guidelines card that explains the rules.*
+> 7. *A README with the commands to start the app and to rebuild the styles*
 >
 > *Sound good?"*
 
@@ -148,8 +149,8 @@ Work in order. Substitute `MyApp`, `myapp` and `pkg` everywhere.
 7. The layout for the chosen navigation, plus `fragments/messages.jte` and `fragments/toast.jte`. [jte-templates.md](references/jte-templates.md) and [crud-pages.md](references/crud-pages.md)
 8. The notification bell: its feature package, its three templates and its migration. [notifications.md](references/notifications.md)
 9. Login and dashboard. [login-page.md](references/login-page.md) and [dashboard-page.md](references/dashboard-page.md)
-
-Run `./gradlew build` before going on. JTE templates compile during the build, so a template error shows up here.
+10. Run `./gradlew build`. JTE templates compile during the build, so a template error shows up here.
+11. `README.md` in the project root: what the app is, the commands to start it, and the commands to rebuild the styles. [readme-pattern.md](references/readme-pattern.md)
 
 ---
 
@@ -164,7 +165,7 @@ Run `./gradlew build` before going on. JTE templates compile during the build, s
 > 4. *Sign in with `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` from `.env`*
 > 5. *The bell in the top bar should show 1. Open it and read the welcome notification.*
 >
-> *Tell me when you're in."*
+> *The same steps are in `README.md`. Tell me when you're in."*
 
 Wait for confirmation.
 
@@ -215,11 +216,15 @@ Tell the user what they have: login, dashboard, the notification bell, one compl
 
 Nothing sends notifications yet apart from the welcome. Ask which events in their app a user would want to hear about later, and wire `notifier.send(...)` there.
 
-The Tailwind watcher rebuilds the stylesheet as templates change:
+Bring `README.md` up to date before you point the user at it. Its first paragraph names the first feature, and anything that changed during the first run, such as a port, is in it. [readme-pattern.md](references/readme-pattern.md)
+
+The stylesheet needs a rebuild after a theme edit, and whenever a template uses a Tailwind class for the first time:
 
 ```bash
-./tailwindcss -i src/main/resources/public/css/site.css -o src/main/resources/public/css/tailwind-output.css --watch
+./tailwindcss -i src/main/resources/public/css/site.css -o src/main/resources/public/css/tailwind-output.css
 ```
+
+Then restart the app, because it serves the copy of the stylesheet that `./gradlew run` makes at start. Add `--watch` to rebuild on every save. The README's Styles section says the same, so the user does not have to remember it.
 
 ---
 
@@ -264,6 +269,7 @@ The Tailwind watcher rebuilds the stylesheet as templates change:
 
 - [project-scaffolding.md](references/project-scaffolding.md): Gradle, versions, static files, Tailwind
 - [docker-setup.md](references/docker-setup.md): Postgres in Docker, `.env`
+- [readme-pattern.md](references/readme-pattern.md): the app's own README, with the start and style rebuild commands
 - [architecture-patterns.md](references/architecture-patterns.md): package layout, `Result`, who calls whom
 - [domain-modeling.md](references/domain-modeling.md): aggregates and entities as classes, value objects and typed ids as records, stores, domain events
 - [javalin-app.md](references/javalin-app.md): `App.java`, sessions, CSRF, exception handling

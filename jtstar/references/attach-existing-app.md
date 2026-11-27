@@ -189,6 +189,8 @@ The layout in [jte-templates.md](jte-templates.md) includes the bell, and the be
 
 Get one screen in front of the user before building the second.
 
+Once it works, add a Web UI section to the host's README with the port and the command that rebuilds the stylesheet. [readme-pattern.md](readme-pattern.md) has the text.
+
 ## Leave alone
 
 - The host's existing HTTP endpoints and ports, including any metrics endpoint.
